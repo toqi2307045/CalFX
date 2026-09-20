@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.ToggleButton?>
+<?import javafx.scene.control.ToggleGroup?>
+<?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.Region?>
+<?import javafx.scene.layout.StackPane?>
+<?import javafx.geometry.Insets?>
+
+<BorderPane fx:id="rootPane" prefWidth="640" prefHeight="480"
+            xmlns="http://javafx.com/javafx/17"
+            xmlns:fx="http://javafx.com/fxml/1"
+            fx:controller="com.mathx.controller.MainController"
+            styleClass="app-root">
+
+    <top>
+        <HBox styleClass="header-bar" alignment="CENTER_LEFT" spacing="8">
+            <padding>
+                <Insets top="8" right="14" bottom="8" left="14"/>
+            </padding>
+
+            <!-- Mode switcher: exactly one of these three is selected at a time -->
+            <HBox styleClass="mode-switcher">
+                <ToggleButton fx:id="calculatorModeButton" text="Calculator" selected="true"
+                              onAction="#handleModeSwitch" styleClass="mode-button, mode-button-first">
+                    <toggleGroup>
+                        <ToggleGroup fx:id="modeGroup"/>
+                    </toggleGroup>
+                </ToggleButton>
+                <ToggleButton fx:id="graphModeButton" text="Graph" toggleGroup="$modeGroup"
+                              onAction="#handleModeSwitch" styleClass="mode-button"/>
+                <ToggleButton fx:id="numericalModeButton" text="Numerical" toggleGroup="$modeGroup"
+                              onAction="#handleModeSwitch" styleClass="mode-button, mode-button-last"/>
+            </HBox>
+
+            <Region HBox.hgrow="ALWAYS"/>
+
+            <Button fx:id="settingsButton" text="&#9881;" onAction="#handleSettings" styleClass="icon-button"/>
+            <Button fx:id="helpButton" text="?" onAction="#handleHelp" styleClass="icon-button"/>
+        </HBox>
+    </top>
+
+    <center>
+        <!-- Content area: MainController swaps this pane's content when the mode changes -->
+        <StackPane fx:id="contentArea">
+            <fx:include fx:id="calculatorView" source="CalculatorView.fxml"/>
+        </StackPane>
+    </center>
+
+</BorderPane>
