@@ -1,6 +1,7 @@
 com\mathx\calculator\PlaceholderEvaluator$Parser.class
 com\mathx\controller\GraphController.class
 com\mathx\controller\CalculatorController.class
+com\mathx\graph\GraphPane$1.class
 com\mathx\calculator\ExpressionEvaluator.class
 com\mathx\MainApp.class
 com\mathx\graph\GraphPane.class
@@ -10,5 +11,6 @@ com\mathx\controller\HomeController.class
 com\mathx\calculator\PlaceholderEvaluator.class
 com\mathx\calculator\ResultFormatter.class
 com\mathx\exception\ExpressionException.class
+com\mathx\graph\GraphPane$Samples.class
 com\mathx\calculator\AngleMode.class
 com\mathx\controller\CalculatorController$1.class

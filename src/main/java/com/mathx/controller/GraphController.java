@@ -52,6 +52,8 @@ public class GraphController {
             showMessage(e.getMessage(), true);
             return;
         }
+        // GraphPane calls this lambda on a background thread: it may only use thread-safe objects
+        // (the evaluator builds a new parser for every call, so it shares no state)
         graphPane.setFunction(x -> evaluateSafely(expression, x));
         showMessage("Plotting f(x) = " + expression, false);
     }
