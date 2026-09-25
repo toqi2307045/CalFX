@@ -22,6 +22,16 @@ public class HomeController {
     }
 
     @FXML
+    private void onCurrency() {
+        navigator.showCurrency();
+    }
+
+    @FXML
+    private void onHistory() {
+        navigator.showHistory();
+    }
+
+    @FXML
     private void onExit() {
         navigator.exit();
     }

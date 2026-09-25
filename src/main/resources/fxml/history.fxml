@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.TableColumn?>
+<?import javafx.scene.control.TableView?>
+<?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.Region?>
+<?import javafx.scene.layout.VBox?>
+
+<BorderPane styleClass="screen" xmlns="http://javafx.com/javafx/17" xmlns:fx="http://javafx.com/fxml/1"
+            fx:controller="com.mathx.controller.HistoryController">
+
+    <top>
+        <HBox styleClass="header-bar" alignment="CENTER_LEFT" spacing="16">
+            <Button text="← Home" styleClass="header-button" onAction="#onHome"/>
+            <Label text="Saved calculations" styleClass="header-title"/>
+            <Region HBox.hgrow="ALWAYS"/>
+            <Button text="Refresh" styleClass="header-button" onAction="#onRefresh"/>
+        </HBox>
+    </top>
+
+    <center>
+        <VBox spacing="12">
+            <padding>
+                <Insets top="20" right="28" bottom="20" left="28"/>
+            </padding>
+
+            <TableView fx:id="table" styleClass="history-table" VBox.vgrow="ALWAYS">
+                <columns>
+                    <TableColumn fx:id="typeColumn" text="Type" prefWidth="120"/>
+                    <TableColumn fx:id="expressionColumn" text="Expression" prefWidth="300"/>
+                    <TableColumn fx:id="resultColumn" text="Result" prefWidth="180"/>
+                    <TableColumn fx:id="timeColumn" text="Time" prefWidth="160"/>
+                </columns>
+            </TableView>
+
+            <Label fx:id="statusLabel" styleClass="hint-label"/>
+        </VBox>
+    </center>
+</BorderPane>

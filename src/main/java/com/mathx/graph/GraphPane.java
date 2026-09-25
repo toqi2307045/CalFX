@@ -3,6 +3,7 @@ package com.mathx.graph;
 import com.mathx.calculator.ResultFormatter;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.property.StringProperty;
+import javafx.concurrent.Task;
 import javafx.scene.Cursor;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
@@ -16,12 +17,21 @@ import javafx.scene.text.Font;
 import javafx.scene.text.TextAlignment;
 
 import java.util.Locale;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.function.DoubleUnaryOperator;
 
 /**
  * The graph window: grid, axes, tick labels and one plotted function.
  * Mouse wheel zooms around the cursor, dragging pans the view.
  * It knows nothing about parsing; it only receives a DoubleUnaryOperator to plot.
+ *
+ * Threading:
+ * - The function is evaluated on a background thread (one worker, one Task at a time).
+ *   A newer request cancels the older Task, so a slow function can never freeze the window.
+ * - The JavaFX thread only draws. Samples are kept in math coordinates, so panning and zooming
+ *   repaint instantly from the last finished samples while new samples are being computed.
+ * - The DoubleUnaryOperator is therefore called from a worker thread and must be thread-safe.
  */
 public class GraphPane extends Pane {
 
@@ -38,10 +48,24 @@ public class GraphPane extends Pane {
     private static final Color LABEL = Color.web("#6B7A99");
     private static final Color CURVE = Color.web("#1A56DB");
 
+    /** Finished result of one sampling run, in math coordinates. Never modified after creation. */
+    private record Samples(double[] x, double[] y, double scale) {
+    }
+
     private final Canvas canvas = new Canvas();
     private final Rectangle clip = new Rectangle();
     private final StringProperty coordinatesText = new SimpleStringProperty("x = 0.000    y = 0.000");
 
+    // one daemon worker thread: it never keeps the application alive after the window is closed
+    private final ExecutorService worker = Executors.newSingleThreadExecutor(runnable -> {
+        Thread thread = new Thread(runnable, "graph-sampler");
+        thread.setDaemon(true);
+        return thread;
+    });
+
+    // the fields below are only touched on the JavaFX thread
+    private Task<Samples> samplingTask;     // newest task; results of older tasks are ignored
+    private Samples samples;                // last finished result, null when nothing is plotted
     private DoubleUnaryOperator function;
     private double centerX;                 // math coordinates at the middle of the pane
     private double centerY;
@@ -64,21 +88,33 @@ public class GraphPane extends Pane {
         setOnMousePressed(this::onMousePressed);
         setOnMouseDragged(this::onMouseDragged);
         setOnMouseMoved(this::updateCoordinates);
+
+        // when the screen is replaced (Navigator swaps the root) the pane leaves the scene: stop the worker
+        sceneProperty().addListener((observable, oldScene, newScene) -> {
+            if (newScene == null) {
+                stopWorker();
+            }
+        });
     }
 
     // ---------------------------------------------------------------- public API
 
-    /** Plots the given function, or clears the curve when null. */
+    /**
+     * Plots the given function, or clears the curve when null.
+     * The function is called on a background thread, so it must be thread-safe.
+     */
     public void setFunction(DoubleUnaryOperator function) {
         this.function = function;
+        samples = null;
         redraw();
+        requestSampling();
     }
 
     public void resetView() {
         centerX = 0;
         centerY = 0;
         scale = DEFAULT_SCALE;
-        redraw();
+        viewChanged();
     }
 
     /** factor greater than 1 zooms in, smaller than 1 zooms out. */
@@ -98,7 +134,7 @@ public class GraphPane extends Pane {
         canvas.setHeight(getHeight());
         clip.setWidth(getWidth());
         clip.setHeight(getHeight());
-        redraw();
+        viewChanged();
     }
 
     // ---------------------------------------------------------------- mouse
@@ -120,7 +156,7 @@ public class GraphPane extends Pane {
         centerX = dragCenterX - (event.getX() - dragStartX) / scale;
         centerY = dragCenterY + (event.getY() - dragStartY) / scale;
         updateCoordinates(event);
-        redraw();
+        viewChanged();
     }
 
     private void updateCoordinates(MouseEvent event) {
@@ -135,7 +171,7 @@ public class GraphPane extends Pane {
         // keep the point under the cursor where it was
         centerX = mathX - (pixelX - getWidth() / 2) / scale;
         centerY = mathY + (pixelY - getHeight() / 2) / scale;
-        redraw();
+        viewChanged();
     }
 
     // ---------------------------------------------------------------- coordinates
@@ -156,7 +192,88 @@ public class GraphPane extends Pane {
         return centerY - (pixelY - getHeight() / 2) / scale;
     }
 
-    // ---------------------------------------------------------------- drawing
+    // ---------------------------------------------------------------- background sampling
+
+    /** Called after every change of the view: repaint at once, and resample only if needed. */
+    private void viewChanged() {
+        redraw();
+        if (function != null && !samplesCoverView()) {
+            requestSampling();
+        }
+    }
+
+    /** True when the finished samples have the current zoom and reach across the visible area. */
+    private boolean samplesCoverView() {
+        if (samples == null || samples.scale() != scale) {
+            return false;
+        }
+        double[] xs = samples.x();
+        return xs[0] <= toMathX(0) && xs[xs.length - 1] >= toMathX(getWidth());
+    }
+
+    /**
+     * Starts computing the y values on the worker thread. Must be called on the JavaFX thread.
+     * One extra view width is sampled on each side, so short pans need no new calculation.
+     */
+    private void requestSampling() {
+        if (samplingTask != null) {
+            samplingTask.cancel();
+            samplingTask = null;
+        }
+        if (function == null || getWidth() <= 0 || worker.isShutdown()) {
+            return;
+        }
+
+        // copy everything the worker needs now: the worker must never read the pane's fields
+        final DoubleUnaryOperator f = function;
+        final double from = toMathX(-getWidth());
+        final double step = 1 / scale;
+        final double sampleScale = scale;
+        final int count = (int) Math.ceil(3 * getWidth()) + 1;
+
+        Task<Samples> task = new Task<>() {
+            @Override
+            protected Samples call() {
+                double[] xs = new double[count];
+                double[] ys = new double[count];
+                for (int i = 0; i < count; i++) {
+                    if (isCancelled()) {
+                        return null;
+                    }
+                    xs[i] = from + i * step;
+                    ys[i] = f.applyAsDouble(xs[i]);
+                }
+                return new Samples(xs, ys, sampleScale);
+            }
+        };
+        // both handlers run on the JavaFX thread
+        task.setOnSucceeded(event -> {
+            if (task == samplingTask) {          // ignore results that were replaced meanwhile
+                samples = task.getValue();
+                redraw();
+            }
+        });
+        task.setOnFailed(event -> {
+            if (task == samplingTask) {
+                samples = null;
+                redraw();
+                task.getException().printStackTrace();
+            }
+        });
+
+        samplingTask = task;
+        worker.execute(task);
+    }
+
+    private void stopWorker() {
+        if (samplingTask != null) {
+            samplingTask.cancel();
+            samplingTask = null;
+        }
+        worker.shutdownNow();
+    }
+
+    // ---------------------------------------------------------------- drawing (JavaFX thread only)
 
     private void redraw() {
         double w = getWidth();
@@ -231,10 +348,14 @@ public class GraphPane extends Pane {
         gc.fillText("0", labelX, labelY);
     }
 
+    /** Draws the finished samples; no function is evaluated here. */
     private void drawFunction(GraphicsContext gc, double w, double h) {
-        if (function == null) {
+        if (samples == null) {
             return;
         }
+        double[] xs = samples.x();
+        double[] ys = samples.y();
+
         gc.setStroke(CURVE);
         gc.setLineWidth(2.5);
         gc.setLineJoin(StrokeLineJoin.ROUND);
@@ -242,14 +363,22 @@ public class GraphPane extends Pane {
 
         boolean penDown = false;
         double previousY = 0;
-        for (double px = 0; px <= w; px++) {
-            double py = toScreenY(function.applyAsDouble(toMathX(px)));
+        for (int i = 0; i < xs.length; i++) {
+            double px = toScreenX(xs[i]);
+            if (px < -20) {
+                penDown = false;                      // left of the visible area
+                continue;
+            }
+            if (px > w + 20) {
+                break;                                // right of the visible area
+            }
+            double py = toScreenY(ys[i]);
             boolean drawable = Double.isFinite(py) && Math.abs(py) < 1e6;
             if (!drawable) {
                 penDown = false;                      // gap: undefined or far off screen
                 continue;
             }
-            // a huge jump between neighbouring pixels is an asymptote (tan x, 1/x): do not join it
+            // a huge jump between neighbouring samples is an asymptote (tan x, 1/x): do not join it
             if (penDown && Math.abs(py - previousY) < 2 * h) {
                 gc.lineTo(px, py);
             } else {

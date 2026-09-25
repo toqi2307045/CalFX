@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.ComboBox?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.TextField?>
+<?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.Region?>
+<?import javafx.scene.layout.VBox?>
+
+<BorderPane styleClass="screen" xmlns="http://javafx.com/javafx/17" xmlns:fx="http://javafx.com/fxml/1"
+            fx:controller="com.mathx.controller.CurrencyController">
+
+    <top>
+        <HBox styleClass="header-bar" alignment="CENTER_LEFT" spacing="16">
+            <Button text="← Home" styleClass="header-button" onAction="#onHome"/>
+            <Label text="Currency converter" styleClass="header-title"/>
+        </HBox>
+    </top>
+
+    <center>
+        <VBox alignment="TOP_CENTER" spacing="18">
+            <padding>
+                <Insets top="28" right="28" bottom="24" left="28"/>
+            </padding>
+
+            <!-- the conversion form -->
+            <VBox styleClass="function-bar" spacing="14" maxWidth="640">
+                <HBox alignment="CENTER_LEFT" spacing="12">
+                    <Label text="Amount" styleClass="function-label"/>
+                    <TextField fx:id="amountField" styleClass="function-field" promptText="e.g. 100"
+                               onAction="#onConvert" HBox.hgrow="ALWAYS"/>
+                </HBox>
+
+                <HBox alignment="CENTER" spacing="14">
+                    <ComboBox fx:id="fromCombo" styleClass="currency-combo" HBox.hgrow="ALWAYS" maxWidth="Infinity"/>
+                    <Button text="⇄" styleClass="secondary-button, round-button" onAction="#onSwap"/>
+                    <ComboBox fx:id="toCombo" styleClass="currency-combo" HBox.hgrow="ALWAYS" maxWidth="Infinity"/>
+                </HBox>
+
+                <HBox alignment="CENTER_LEFT" spacing="12">
+                    <Button text="Convert" styleClass="primary-button" onAction="#onConvert"/>
+                    <Button text="Refresh rates" styleClass="secondary-button" onAction="#onRefreshRates"/>
+                </HBox>
+            </VBox>
+
+            <!-- the answer, styled like the calculator's own display -->
+            <VBox styleClass="display" maxWidth="640">
+                <Label text="Converted amount" styleClass="expression-label"/>
+                <Label fx:id="resultLabel" styleClass="result-label" maxWidth="Infinity" minHeight="64"
+                       alignment="CENTER_RIGHT" text="0"/>
+            </VBox>
+
+            <HBox alignment="CENTER_LEFT" maxWidth="640">
+                <Label fx:id="statusLabel" styleClass="hint-label" wrapText="true"/>
+                <Region HBox.hgrow="ALWAYS"/>
+            </HBox>
+        </VBox>
+    </center>
+</BorderPane>

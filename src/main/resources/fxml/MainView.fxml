@@ -8,6 +8,7 @@
 <?import javafx.scene.layout.StackPane?>
 <?import javafx.geometry.Insets?>
 
+<?import java.awt.Insets?>
 <BorderPane fx:id="rootPane" prefWidth="640" prefHeight="480"
             xmlns="http://javafx.com/javafx/17"
             xmlns:fx="http://javafx.com/fxml/1"
