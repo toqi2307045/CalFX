@@ -3,8 +3,10 @@ package com.CalFX.db;
 import javafx.concurrent.Task;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
@@ -20,19 +22,20 @@ import java.util.concurrent.Executors;
 import java.util.function.Consumer;
 
 /**
- * Saves calculator and currency results to a local SQLite database file and keeps only the
- * most recent 100 rows. One instance is shared for the app's lifetime (created once in
- * Navigator), so every screen writes to and reads from the same table.
+ * Saves calculator and currency results to a local SQLite database file and exports the
+ * complete history to history.json. One instance is shared for the app's lifetime (created
+ * once in Navigator), so every screen writes to and reads from the same table.
  *
  * All database access happens on one background thread; callers get their answer back on
  * the JavaFX thread, the same pattern GraphPane uses for sampling a function.
  */
 public class CalculationHistoryStore {
 
-    private static final int MAX_RECORDS = 100;
+    private static final int MAX_RECENT_RECORDS = 100;
     private static final DateTimeFormatter TIMESTAMP_FORMAT = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
     private final Path databaseFile = Path.of(System.getProperty("user.home"), ".CalFX", "CalFX-history.db");
+    private final Path historyJsonFile = databaseFile.resolveSibling("history.json");
     private final String jdbcUrl = "jdbc:sqlite:" + databaseFile;
 
     private final ExecutorService worker = Executors.newSingleThreadExecutor(runnable -> {
@@ -45,7 +48,7 @@ public class CalculationHistoryStore {
         worker.execute(this::createTableIfNeeded);
     }
 
-    /** Fire-and-forget: adds one row, then trims the table back down to the newest 100. */
+    /** Fire-and-forget: adds one row and exports the complete database to history.json. */
     public void insertAsync(String type, String expression, String result) {
         worker.execute(() -> {
             try (Connection connection = connect()) {
@@ -57,11 +60,7 @@ public class CalculationHistoryStore {
                     insert.setString(4, LocalDateTime.now().format(TIMESTAMP_FORMAT));
                     insert.executeUpdate();
                 }
-                try (Statement trim = connection.createStatement()) {
-                    trim.executeUpdate(
-                            "DELETE FROM calculations WHERE id NOT IN "
-                                    + "(SELECT id FROM calculations ORDER BY id DESC LIMIT " + MAX_RECORDS + ")");
-                }
+                exportHistoryJson(connection);
             } catch (SQLException e) {
                 e.printStackTrace();
             }
@@ -75,7 +74,7 @@ public class CalculationHistoryStore {
             protected List<CalculationRecord> call() throws SQLException {
                 List<CalculationRecord> records = new ArrayList<>();
                 String sql = "SELECT id, type, expression, result, created_at "
-                        + "FROM calculations ORDER BY id DESC LIMIT " + MAX_RECORDS;
+                        + "FROM calculations ORDER BY id DESC LIMIT " + MAX_RECENT_RECORDS;
                 try (Connection connection = connect();
                      Statement statement = connection.createStatement();
                      ResultSet rows = statement.executeQuery(sql)) {
@@ -111,9 +110,79 @@ public class CalculationHistoryStore {
                             + "expression TEXT NOT NULL, "
                             + "result TEXT NOT NULL, "
                             + "created_at TEXT NOT NULL)");
+            exportHistoryJson(connection);
         } catch (SQLException e) {
             e.printStackTrace();
         }
+    }
+
+    private void exportHistoryJson(Connection connection) throws SQLException {
+        StringBuilder json = new StringBuilder("[\n");
+        try (Statement statement = connection.createStatement();
+             ResultSet rows = statement.executeQuery(
+                     "SELECT id, type, expression, result, created_at FROM calculations ORDER BY id")) {
+            boolean first = true;
+            while (rows.next()) {
+                if (!first) {
+                    json.append(",\n");
+                }
+                first = false;
+                json.append("  {\"id\":").append(rows.getLong("id"))
+                        .append(",\"type\":").append(toJsonString(rows.getString("type")))
+                        .append(",\"expression\":").append(toJsonString(rows.getString("expression")))
+                        .append(",\"result\":").append(toJsonString(rows.getString("result")))
+                        .append(",\"timestamp\":").append(toJsonString(rows.getString("created_at")))
+                        .append('}');
+            }
+        }
+        json.append("\n]\n");
+
+        Path temporaryFile = null;
+        try {
+            Files.createDirectories(historyJsonFile.getParent());
+            temporaryFile = Files.createTempFile(historyJsonFile.getParent(), "history-", ".json.tmp");
+            Files.writeString(temporaryFile, json, StandardCharsets.UTF_8);
+            try {
+                Files.move(temporaryFile, historyJsonFile,
+                        StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING);
+            } catch (java.nio.file.AtomicMoveNotSupportedException e) {
+                Files.move(temporaryFile, historyJsonFile, StandardCopyOption.REPLACE_EXISTING);
+            }
+        } catch (IOException e) {
+            throw new SQLException("Cannot export calculation history to " + historyJsonFile, e);
+        } finally {
+            if (temporaryFile != null) {
+                try {
+                    Files.deleteIfExists(temporaryFile);
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+    }
+
+    private static String toJsonString(String value) {
+        StringBuilder escaped = new StringBuilder("\"");
+        for (int i = 0; i < value.length(); i++) {
+            char character = value.charAt(i);
+            switch (character) {
+                case '"' -> escaped.append("\\\"");
+                case '\\' -> escaped.append("\\\\");
+                case '\b' -> escaped.append("\\b");
+                case '\f' -> escaped.append("\\f");
+                case '\n' -> escaped.append("\\n");
+                case '\r' -> escaped.append("\\r");
+                case '\t' -> escaped.append("\\t");
+                default -> {
+                    if (character < 0x20) {
+                        escaped.append(String.format("\\u%04x", (int) character));
+                    } else {
+                        escaped.append(character);
+                    }
+                }
+            }
+        }
+        return escaped.append('"').toString();
     }
 
     private Connection connect() throws SQLException {
