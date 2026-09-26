@@ -14,7 +14,7 @@
 <?import javafx.scene.layout.VBox?>
 
 <BorderPane fx:id="rootPane" styleClass="screen" xmlns="http://javafx.com/javafx/17" xmlns:fx="http://javafx.com/fxml/1"
-            fx:controller="com.mathx.controller.CalculatorController">
+            fx:controller="com.CalFX.controller.CalculatorController">
 
     <fx:define>
         <ToggleGroup fx:id="angleGroup"/>

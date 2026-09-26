@@ -7,10 +7,10 @@
 <?import javafx.scene.layout.VBox?>
 
 <StackPane styleClass="home-screen" xmlns="http://javafx.com/javafx/17" xmlns:fx="http://javafx.com/fxml/1"
-           fx:controller="com.mathx.controller.HomeController">
+           fx:controller="com.CalFX.controller.HomeController">
 
     <VBox alignment="CENTER" maxWidth="420" maxHeight="-Infinity">
-        <Label text="MathX" styleClass="home-title"/>
+        <Label text="CalFX" styleClass="home-title"/>
         <Label text="Graphing Scientific Calculator" styleClass="home-subtitle"/>
 
         <VBox styleClass="menu-card" spacing="14">

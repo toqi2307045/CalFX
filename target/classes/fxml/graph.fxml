@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<?import com.mathx.graph.GraphPane?>
+<?import com.CalFX.graph.GraphPane?>
 <?import javafx.geometry.Insets?>
 <?import javafx.scene.control.Button?>
 <?import javafx.scene.control.Label?>
@@ -12,7 +12,7 @@
 <?import javafx.scene.layout.VBox?>
 
 <BorderPane styleClass="screen" xmlns="http://javafx.com/javafx/17" xmlns:fx="http://javafx.com/fxml/1"
-            fx:controller="com.mathx.controller.GraphController">
+            fx:controller="com.CalFX.controller.GraphController">
 
     <top>
         <HBox styleClass="header-bar" alignment="CENTER_LEFT" spacing="16">

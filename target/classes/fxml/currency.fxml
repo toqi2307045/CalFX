@@ -11,7 +11,7 @@
 <?import javafx.scene.layout.VBox?>
 
 <BorderPane styleClass="screen" xmlns="http://javafx.com/javafx/17" xmlns:fx="http://javafx.com/fxml/1"
-            fx:controller="com.mathx.controller.CurrencyController">
+            fx:controller="com.CalFX.controller.CurrencyController">
 
     <top>
         <HBox styleClass="header-bar" alignment="CENTER_LEFT" spacing="16">
