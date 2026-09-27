@@ -95,6 +95,53 @@ public class CalculationHistoryStore {
         worker.execute(task);
     }
 
+    /** Updates the editable fields of one history row and refreshes the JSON export. */
+    public void updateAsync(long id, String type, String expression,
+                            Runnable onUpdated, Consumer<Throwable> onError) {
+        Task<Void> task = new Task<>() {
+            @Override
+            protected Void call() throws SQLException {
+                try (Connection connection = connect();
+                     PreparedStatement update = connection.prepareStatement(
+                             "UPDATE calculations SET type = ?, expression = ? WHERE id = ?")) {
+                    update.setString(1, type);
+                    update.setString(2, expression);
+                    update.setLong(3, id);
+                    if (update.executeUpdate() == 0) {
+                        throw new SQLException("History entry no longer exists.");
+                    }
+                    exportHistoryJson(connection);
+                }
+                return null;
+            }
+        };
+        task.setOnSucceeded(event -> onUpdated.run());
+        task.setOnFailed(event -> onError.accept(task.getException()));
+        worker.execute(task);
+    }
+
+    /** Deletes one history row and refreshes the JSON export. */
+    public void deleteAsync(long id, Runnable onDeleted, Consumer<Throwable> onError) {
+        Task<Void> task = new Task<>() {
+            @Override
+            protected Void call() throws SQLException {
+                try (Connection connection = connect();
+                     PreparedStatement delete = connection.prepareStatement(
+                             "DELETE FROM calculations WHERE id = ?")) {
+                    delete.setLong(1, id);
+                    if (delete.executeUpdate() == 0) {
+                        throw new SQLException("History entry no longer exists.");
+                    }
+                    exportHistoryJson(connection);
+                }
+                return null;
+            }
+        };
+        task.setOnSucceeded(event -> onDeleted.run());
+        task.setOnFailed(event -> onError.accept(task.getException()));
+        worker.execute(task);
+    }
+
     public void shutdown() {
         worker.shutdownNow();
     }

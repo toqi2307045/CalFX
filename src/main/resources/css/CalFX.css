@@ -422,6 +422,23 @@
     -fx-font-size: 13px;
 }
 
+.history-action-button {
+    -fx-background-color: #171717;
+    -fx-background-radius: 6;
+    -fx-text-fill: #FFA500;
+    -fx-font-weight: bold;
+    -fx-padding: 6 10 6 10;
+    -fx-cursor: hand;
+}
+
+.history-action-button:hover {
+    -fx-background-color: #303030;
+}
+
+.history-action-button:pressed {
+    -fx-background-color: #000000;
+}
+
 .history-table .placeholder .label {
     -fx-text-fill: -mx-muted;
 }

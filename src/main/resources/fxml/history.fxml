@@ -34,6 +34,7 @@
                     <TableColumn fx:id="expressionColumn" text="Expression" prefWidth="300"/>
                     <TableColumn fx:id="resultColumn" text="Result" prefWidth="180"/>
                     <TableColumn fx:id="timeColumn" text="Time" prefWidth="160"/>
+                    <TableColumn fx:id="actionsColumn" text="Actions" prefWidth="190" sortable="false"/>
                 </columns>
             </TableView>
 
