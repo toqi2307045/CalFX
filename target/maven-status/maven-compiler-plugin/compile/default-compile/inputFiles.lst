@@ -4,6 +4,8 @@ D:\CalFx\CalFx\src\main\java\com\CalFX\calculator\ExpressionBuffer.java
 D:\CalFx\CalFx\src\main\java\com\CalFX\calculator\ExpressionEvaluator.java
 D:\CalFx\CalFx\src\main\java\com\CalFX\calculator\PlaceholderEvaluator.java
 D:\CalFx\CalFx\src\main\java\com\CalFX\calculator\ResultFormatter.java
+D:\CalFx\CalFx\src\main\java\com\CalFX\controller\CalculationMenuController.java
+D:\CalFx\CalFx\src\main\java\com\CalFX\controller\CalculationModeController.java
 D:\CalFx\CalFx\src\main\java\com\CalFX\controller\CalculatorController.java
 D:\CalFx\CalFx\src\main\java\com\CalFX\controller\CurrencyController.java
 D:\CalFx\CalFx\src\main\java\com\CalFX\controller\GraphController.java

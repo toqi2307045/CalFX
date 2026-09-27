@@ -487,3 +487,66 @@
     -fx-background-color: -mx-surface;
     -fx-text-fill: -mx-text;
 }
+
+.mode-content {
+    -fx-padding: 28;
+    -fx-background-color: -mx-bg;
+}
+
+.mode-grid {
+    -fx-padding: 8;
+}
+
+.mode-button {
+    -fx-background-color: -mx-surface;
+    -fx-background-radius: 14;
+    -fx-border-color: -mx-border;
+    -fx-border-radius: 14;
+    -fx-text-fill: -mx-text;
+    -fx-font-size: 17px;
+    -fx-font-weight: bold;
+    -fx-pref-height: 82;
+    -fx-pref-width: 390;
+    -fx-max-width: infinity;
+    -fx-cursor: hand;
+}
+
+.mode-button:hover,
+.mode-button:focused {
+    -fx-background-color: -mx-primary-soft;
+    -fx-border-color: -mx-primary;
+}
+
+.mode-card {
+    -fx-background-color: -mx-surface;
+    -fx-background-radius: 18;
+    -fx-border-color: -mx-border;
+    -fx-border-radius: 18;
+    -fx-padding: 26;
+    -fx-effect: dropshadow(gaussian, rgba(26, 86, 219, 0.10), 12, 0, 0, 3);
+}
+
+.mode-form .label {
+    -fx-text-fill: -mx-text;
+}
+
+.mode-field {
+    -fx-background-color: -mx-bg;
+    -fx-background-radius: 8;
+    -fx-border-color: -mx-border;
+    -fx-border-radius: 8;
+    -fx-text-fill: -mx-text;
+}
+
+.mode-result {
+    -fx-background-color: -mx-primary-soft;
+    -fx-background-radius: 8;
+    -fx-padding: 12;
+    -fx-text-fill: -mx-text;
+    -fx-font-weight: bold;
+    -fx-min-height: 42;
+}
+
+.mode-result.calculation-error {
+    -fx-text-fill: -mx-error;
+}
