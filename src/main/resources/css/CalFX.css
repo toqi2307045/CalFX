@@ -12,6 +12,9 @@
     -mx-muted: #6B7A99;
     -mx-border: #D5E0F5;
     -mx-error: #D92D20;
+    -mx-surface: white;
+    -mx-on-primary: white;
+    -mx-on-surface: #0F1E3D;
 
     -fx-font-family: "Segoe UI", Arial;
     -fx-font-size: 15px;
@@ -35,7 +38,7 @@
 }
 
 .header-title {
-    -fx-text-fill: white;
+    -fx-text-fill: -mx-on-primary;
     -fx-font-size: 20px;
     -fx-font-weight: bold;
 }
@@ -43,7 +46,7 @@
 .header-button {
     -fx-background-color: rgba(255, 255, 255, 0.16);
     -fx-background-radius: 10;
-    -fx-text-fill: white;
+    -fx-text-fill: -mx-on-primary;
     -fx-font-weight: bold;
     -fx-padding: 8 16 8 16;
     -fx-cursor: hand;
@@ -56,14 +59,14 @@
 /* DEG / RAD switch */
 .segment {
     -fx-background-color: rgba(255, 255, 255, 0.16);
-    -fx-text-fill: white;
+    -fx-text-fill: -mx-on-primary;
     -fx-font-weight: bold;
     -fx-padding: 7 18 7 18;
     -fx-cursor: hand;
 }
 
 .segment:selected {
-    -fx-background-color: white;
+    -fx-background-color: -mx-surface;
     -fx-text-fill: -mx-primary;
 }
 
@@ -82,18 +85,18 @@
 }
 
 .home-title {
-    -fx-text-fill: white;
+    -fx-text-fill: -mx-on-primary;
     -fx-font-size: 56px;
     -fx-font-weight: bold;
 }
 
 .home-subtitle {
-    -fx-text-fill: rgba(255, 255, 255, 0.85);
+    -fx-text-fill: -mx-on-primary;
     -fx-font-size: 18px;
 }
 
 .menu-card {
-    -fx-background-color: white;
+    -fx-background-color: -mx-surface;
     -fx-background-radius: 24;
     -fx-padding: 30;
     -fx-effect: dropshadow(gaussian, rgba(5, 20, 70, 0.35), 30, 0.1, 0, 10);
@@ -102,7 +105,7 @@
 .menu-button {
     -fx-background-color: -mx-primary;
     -fx-background-radius: 12;
-    -fx-text-fill: white;
+    -fx-text-fill: -mx-on-primary;
     -fx-font-size: 18px;
     -fx-font-weight: bold;
     -fx-pref-height: 56;
@@ -120,7 +123,7 @@
 }
 
 .menu-button-outline {
-    -fx-background-color: white;
+    -fx-background-color: -mx-surface;
     -fx-border-color: -mx-primary;
     -fx-border-width: 2;
     -fx-border-radius: 12;
@@ -139,7 +142,7 @@
 /* ------------------------------------------------------------------ calculator screen */
 
 .display {
-    -fx-background-color: white;
+    -fx-background-color: -mx-surface;
     -fx-background-radius: 18;
     -fx-border-color: -mx-border;
     -fx-border-radius: 18;
@@ -194,7 +197,7 @@
 
 /* digits and the decimal point: white */
 .key-num {
-    -fx-background-color: white;
+    -fx-background-color: -mx-surface;
     -fx-border-color: -mx-border;
     -fx-border-radius: 12;
     -fx-text-fill: -mx-text;
@@ -211,7 +214,7 @@
 
 /* AC and DEL */
 .key-clear {
-    -fx-background-color: white;
+    -fx-background-color: -mx-surface;
     -fx-border-color: -mx-border;
     -fx-border-radius: 12;
     -fx-text-fill: -mx-primary;
@@ -228,7 +231,7 @@
 /* + - x / : blue */
 .key-op {
     -fx-background-color: -mx-primary;
-    -fx-text-fill: white;
+    -fx-text-fill: -mx-on-primary;
     -fx-font-size: 20px;
 }
 
@@ -243,7 +246,7 @@
 /* = : the darkest blue, the one key that stands out */
 .key-equals {
     -fx-background-color: -mx-primary-deep;
-    -fx-text-fill: white;
+    -fx-text-fill: -mx-on-primary;
     -fx-font-size: 22px;
 }
 
@@ -258,7 +261,7 @@
 /* ------------------------------------------------------------------ graph screen */
 
 .function-bar {
-    -fx-background-color: white;
+    -fx-background-color: -mx-surface;
     -fx-background-radius: 16;
     -fx-border-color: -mx-border;
     -fx-border-radius: 16;
@@ -284,7 +287,7 @@
 }
 
 .function-field:focused {
-    -fx-background-color: white;
+    -fx-background-color: -mx-surface;
     -fx-border-color: -mx-primary;
     -fx-border-width: 2;
 }
@@ -301,7 +304,7 @@
 .primary-button {
     -fx-background-color: -mx-primary;
     -fx-background-radius: 10;
-    -fx-text-fill: white;
+    -fx-text-fill: -mx-on-primary;
     -fx-font-weight: bold;
     -fx-padding: 9 24 9 24;
     -fx-cursor: hand;
@@ -316,7 +319,7 @@
 }
 
 .secondary-button {
-    -fx-background-color: white;
+    -fx-background-color: -mx-surface;
     -fx-background-radius: 10;
     -fx-border-color: -mx-primary;
     -fx-border-radius: 10;
@@ -340,7 +343,7 @@
 }
 
 .graph-frame {
-    -fx-background-color: white;
+    -fx-background-color: -mx-surface;
     -fx-background-radius: 16;
     -fx-border-color: -mx-border;
     -fx-border-radius: 16;
@@ -379,7 +382,7 @@
 /* ------------------------------------------------------------------ history screen */
 
 .history-table {
-    -fx-background-color: white;
+    -fx-background-color: -mx-surface;
     -fx-background-radius: 14;
     -fx-border-color: -mx-border;
     -fx-border-radius: 14;
@@ -398,13 +401,13 @@
 }
 
 .history-table .column-header .label {
-    -fx-text-fill: white;
+    -fx-text-fill: -mx-on-primary;
     -fx-font-weight: bold;
     -fx-alignment: CENTER_LEFT;
 }
 
 .history-table .table-row-cell {
-    -fx-background-color: white;
+    -fx-background-color: -mx-surface;
     -fx-border-color: transparent transparent -mx-border transparent;
 }
 
@@ -441,4 +444,46 @@
 
 .history-table .placeholder .label {
     -fx-text-fill: -mx-muted;
+}
+
+.personalization-content {
+    -fx-padding: 28;
+    -fx-background-color: -mx-bg;
+}
+
+.section-title {
+    -fx-text-fill: -mx-text;
+    -fx-font-size: 18px;
+    -fx-font-weight: bold;
+}
+
+.color-card {
+    -fx-background-color: -mx-surface;
+    -fx-background-radius: 14;
+    -fx-border-color: -mx-border;
+    -fx-border-radius: 14;
+    -fx-padding: 20;
+}
+
+.color-preview {
+    -fx-min-width: 48;
+    -fx-min-height: 48;
+    -fx-pref-width: 48;
+    -fx-pref-height: 48;
+    -fx-border-color: -mx-border;
+    -fx-border-radius: 8;
+}
+
+.rgb-grid {
+    -fx-padding: 8 0 0 0;
+}
+
+.rgb-grid .label {
+    -fx-text-fill: -mx-text;
+    -fx-font-weight: bold;
+}
+
+.theme-choice {
+    -fx-background-color: -mx-surface;
+    -fx-text-fill: -mx-text;
 }

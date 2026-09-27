@@ -11,6 +11,7 @@ import javafx.css.PseudoClass;
 import javafx.fxml.FXML;
 import javafx.scene.control.Label;
 import javafx.scene.control.TextField;
+import javafx.scene.layout.StackPane;
 
 /** Connects the graph screen to the graph window. Graphs use radians. */
 public class GraphController {
@@ -26,7 +27,8 @@ public class GraphController {
     @FXML private TextField functionField;
     @FXML private Label messageLabel;
     @FXML private Label coordinatesLabel;
-    @FXML private GraphPane graphPane;
+    @FXML private StackPane graphContainer;
+    private GraphPane graphPane;
 
     public GraphController(Navigator navigator) {
         this.navigator = navigator;
@@ -34,6 +36,8 @@ public class GraphController {
 
     @FXML
     private void initialize() {
+        graphPane = new GraphPane();
+        graphContainer.getChildren().setAll(graphPane);
         coordinatesLabel.textProperty().bind(graphPane.coordinatesTextProperty());
         showMessage(HINT, false);
         Platform.runLater(functionField::requestFocus);

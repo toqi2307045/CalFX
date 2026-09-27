@@ -10,6 +10,7 @@ D:\CalFx\CalFx\src\main\java\com\CalFX\controller\GraphController.java
 D:\CalFx\CalFx\src\main\java\com\CalFX\controller\HistoryController.java
 D:\CalFx\CalFx\src\main\java\com\CalFX\controller\HomeController.java
 D:\CalFx\CalFx\src\main\java\com\CalFX\controller\MainController.java
+D:\CalFx\CalFx\src\main\java\com\CalFX\controller\PersonalizationController.java
 D:\CalFx\CalFx\src\main\java\com\CalFX\currency\CurrencyCode.java
 D:\CalFx\CalFx\src\main\java\com\CalFX\currency\ExchangeRateService.java
 D:\CalFx\CalFx\src\main\java\com\CalFX\currency\SimpleJson.java
@@ -19,3 +20,4 @@ D:\CalFx\CalFx\src\main\java\com\CalFX\exception\ExpressionException.java
 D:\CalFx\CalFx\src\main\java\com\CalFX\graph\GraphPane.java
 D:\CalFx\CalFx\src\main\java\com\CalFX\MainApp.java
 D:\CalFx\CalFx\src\main\java\com\CalFX\Navigator.java
+D:\CalFx\CalFx\src\main\java\com\CalFX\ThemeManager.java

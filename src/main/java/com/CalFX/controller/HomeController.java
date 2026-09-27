@@ -13,7 +13,7 @@ public class HomeController {
 
     @FXML
     private void onCalculation() {
-        navigator.showCalculator();
+        navigator.showCalculationMenu();
     }
 
     @FXML
@@ -29,6 +29,11 @@ public class HomeController {
     @FXML
     private void onHistory() {
         navigator.showHistory();
+    }
+
+    @FXML
+    private void onPersonalization() {
+        navigator.showPersonalization();
     }
 
     @FXML

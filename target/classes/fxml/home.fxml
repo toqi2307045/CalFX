@@ -21,6 +21,7 @@
             <Button text="Graph" styleClass="menu-button" onAction="#onGraph"/>
             <Button text="Currency" styleClass="menu-button" onAction="#onCurrency"/>
             <Button text="History" styleClass="menu-button" onAction="#onHistory"/>
+            <Button text="Personalization" styleClass="menu-button" onAction="#onPersonalization"/>
             <Button text="Exit" styleClass="menu-button, menu-button-outline" onAction="#onExit"/>
         </VBox>
     </VBox>

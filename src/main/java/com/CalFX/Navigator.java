@@ -4,6 +4,7 @@ import com.CalFX.currency.ExchangeRateService;
 import com.CalFX.db.CalculationHistoryStore;
 import javafx.application.Platform;
 import javafx.fxml.FXMLLoader;
+import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.layout.StackPane;
 import javafx.stage.Stage;
@@ -27,10 +28,15 @@ public final class Navigator {
     private static final String GRAPH_FXML = "/fxml/graph.fxml";
     private static final String CURRENCY_FXML = "/fxml/currency.fxml";
     private static final String HISTORY_FXML = "/fxml/history.fxml";
+    private static final String PERSONALIZATION_FXML = "/fxml/personalization.fxml";
+    private static final String CALCULATION_MENU_FXML = "/fxml/calculation-menu.fxml";
+    private static final String CALCULATION_MODE_FXML = "/fxml/calculation-mode.fxml";
 
     private final Scene scene;
     private final CalculationHistoryStore historyStore = new CalculationHistoryStore();
     private final ExchangeRateService rateService = new ExchangeRateService();
+    private final ThemeManager themeManager = new ThemeManager(this);
+    private String requestedCalculationMode;
 
     public Navigator(Stage stage) {
         scene = new Scene(new StackPane(), 1000, 720);
@@ -50,6 +56,19 @@ public final class Navigator {
         show(CALCULATOR_FXML);
     }
 
+    public void showCalculationMenu() {
+        show(CALCULATION_MENU_FXML);
+    }
+
+    public void showCalculationMode(String mode) {
+        requestedCalculationMode = mode;
+        show(CALCULATION_MODE_FXML);
+    }
+
+    public String getRequestedCalculationMode() {
+        return requestedCalculationMode;
+    }
+
     public void showGraph() {
         show(GRAPH_FXML);
     }
@@ -60,6 +79,18 @@ public final class Navigator {
 
     public void showHistory() {
         show(HISTORY_FXML);
+    }
+
+    public void showPersonalization() {
+        show(PERSONALIZATION_FXML);
+    }
+
+    public ThemeManager getThemeManager() {
+        return themeManager;
+    }
+
+    public void applyCurrentTheme() {
+        themeManager.apply(scene.getRoot());
     }
 
     public void exit() {
@@ -76,7 +107,9 @@ public final class Navigator {
         FXMLLoader loader = new FXMLLoader(Navigator.class.getResource(fxmlPath));
         loader.setControllerFactory(this::createController);
         try {
-            scene.setRoot(loader.load());
+            Parent root = loader.load();
+            scene.setRoot(root);
+            themeManager.apply(root);
         } catch (IOException e) {
             throw new UncheckedIOException("Cannot load " + fxmlPath, e);
         }

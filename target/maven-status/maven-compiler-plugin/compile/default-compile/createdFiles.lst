@@ -1,6 +1,7 @@
 com\CalFX\calculator\ResultFormatter.class
 com\CalFX\controller\HomeController.class
 com\CalFX\currency\ExchangeRateService$1.class
+com\CalFX\ThemeManager.class
 com\CalFX\Application.class
 com\CalFX\db\CalculationRecord.class
 com\CalFX\MainApp.class
@@ -9,6 +10,7 @@ com\CalFX\controller\HistoryController.class
 com\CalFX\currency\CurrencyCode.class
 com\CalFX\db\CalculationHistoryStore$2.class
 com\CalFX\currency\ExchangeRateService.class
+com\CalFX\controller\PersonalizationController.class
 com\CalFX\graph\GraphPane.class
 com\CalFX\controller\GraphController.class
 com\CalFX\graph\GraphPane$Samples.class
@@ -21,6 +23,7 @@ com\CalFX\db\CalculationHistoryStore.class
 com\CalFX\exception\ExpressionException.class
 com\CalFX\graph\GraphPane$1.class
 com\CalFX\controller\CalculatorController$1.class
+com\CalFX\controller\PersonalizationController$Palette.class
 com\CalFX\currency\SimpleJson$Parser.class
 com\CalFX\currency\SimpleJson.class
 com\CalFX\db\CalculationHistoryStore$3.class
