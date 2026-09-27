@@ -8,6 +8,7 @@
 <?import javafx.scene.layout.GridPane?>
 <?import javafx.scene.layout.HBox?>
 <?import javafx.scene.layout.Region?>
+<?import javafx.scene.control.ScrollPane?>
 <?import javafx.scene.layout.VBox?>
 
 <BorderPane styleClass="screen" xmlns="http://javafx.com/javafx/17" xmlns:fx="http://javafx.com/fxml/1"
@@ -20,18 +21,22 @@
         </HBox>
     </top>
     <center>
-        <VBox alignment="TOP_CENTER" spacing="18" styleClass="mode-content">
-            <VBox spacing="14" maxWidth="760" styleClass="mode-card">
-                <Label fx:id="descriptionLabel" styleClass="hint-label" wrapText="true"/>
-                <GridPane fx:id="formGrid" styleClass="mode-form">
-                    <columnConstraints>
-                        <ColumnConstraints minWidth="190"/>
-                        <ColumnConstraints hgrow="ALWAYS"/>
-                    </columnConstraints>
-                </GridPane>
-                <Button text="Calculate" styleClass="primary-button" onAction="#onCalculate"/>
-                <Label fx:id="resultLabel" text="" styleClass="mode-result" wrapText="true"/>
-            </VBox>
-        </VBox>
+        <ScrollPane fitToWidth="true" hbarPolicy="NEVER" styleClass="mode-scroll">
+            <content>
+                <VBox alignment="TOP_CENTER" spacing="18" styleClass="mode-content">
+                    <VBox spacing="14" maxWidth="760" styleClass="mode-card">
+                        <Label fx:id="descriptionLabel" styleClass="hint-label" wrapText="true"/>
+                        <GridPane fx:id="formGrid" styleClass="mode-form">
+                            <columnConstraints>
+                                <ColumnConstraints minWidth="150"/>
+                                <ColumnConstraints hgrow="ALWAYS"/>
+                            </columnConstraints>
+                        </GridPane>
+                        <Button text="Calculate" styleClass="primary-button" onAction="#onCalculate"/>
+                        <Label fx:id="resultLabel" text="" styleClass="mode-result" wrapText="true"/>
+                    </VBox>
+                </VBox>
+            </content>
+        </ScrollPane>
     </center>
 </BorderPane>

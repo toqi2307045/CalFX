@@ -10,12 +10,14 @@ import javafx.geometry.Insets;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
 import javafx.scene.control.TextField;
+import javafx.scene.Node;
+import javafx.scene.layout.HBox;
 import javafx.scene.layout.GridPane;
+import javafx.scene.layout.VBox;
 
 import java.math.BigInteger;
 import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 
 /** Provides the working forms for the non-basic calculation modes. */
@@ -23,7 +25,9 @@ public class CalculationModeController {
     private final Navigator navigator;
     private final Map<String, TextField> fields = new LinkedHashMap<>();
     private final Map<String, ComboBox<String>> choices = new LinkedHashMap<>();
+    private final Map<String, Node> rows = new LinkedHashMap<>();
     private final PlaceholderEvaluator evaluator = new PlaceholderEvaluator();
+    private VBox polynomialCoefficients;
 
     @FXML private Label titleLabel;
     @FXML private Label descriptionLabel;
@@ -78,26 +82,109 @@ public class CalculationModeController {
     }
 
     private void setupMatrix() {
-        descriptionLabel.setText("Enter rows with commas and separate rows with semicolons. Operations require compatible dimensions; determinant and inverse require a square matrix.");
-        addChoice("operation", "Operation", List.of("Add", "Subtract", "Multiply", "Determinant", "Inverse"));
-        addField("matrixA", "Matrix A", "1, 2; 3, 4");
-        addField("matrixB", "Matrix B", "5, 6; 7, 8");
+        descriptionLabel.setText("Choose the size of each matrix, then enter a value in every cell. Addition and subtraction need matching sizes; multiplication needs A columns to match B rows.");
+        ComboBox<String> operation = addChoice("operation", "Operation", List.of("Add", "Subtract", "Multiply", "Determinant", "Inverse"));
+        addMatrixInput("A");
+        addMatrixInput("B");
+        operation.valueProperty().addListener((obs, oldValue, value) -> {
+            boolean needsB = !"Determinant".equals(value) && !"Inverse".equals(value);
+            setRowVisible("matrixBBox", needsB);
+            setRowVisible("matrixBEntries", needsB);
+            setRowVisible("matrixBRows", needsB);
+            setRowVisible("matrixBColumns", needsB);
+        });
+        setRowVisible("matrixBBox", true);
+    }
+
+    private void addMatrixInput(String name) {
+        String rowsId = "matrix" + name + "Rows";
+        String columnsId = "matrix" + name + "Columns";
+        ComboBox<String> rowCount = addChoice(rowsId, "Matrix " + name + " rows", dimensions());
+        ComboBox<String> columnCount = addChoice(columnsId, "Matrix " + name + " columns", dimensions());
+        rowCount.setValue("2");
+        columnCount.setValue("2");
+        GridPane cells = new GridPane();
+        cells.setHgap(8);
+        cells.setVgap(8);
+        cells.getStyleClass().add("matrix-input-grid");
+        VBox box = new VBox(6, new Label("Matrix " + name), cells);
+        box.getStyleClass().add("matrix-input-section");
+        int row = formGrid.getRowCount();
+        Label entriesLabel = new Label("Matrix " + name + " entries");
+        formGrid.add(entriesLabel, 0, row);
+        formGrid.add(box, 1, row);
+        rows.put("matrix" + name + "Box", box);
+        rows.put("matrix" + name + "Entries", entriesLabel);
+        Runnable update = () -> rebuildMatrixGrid(name, cells, Integer.parseInt(rowCount.getValue()), Integer.parseInt(columnCount.getValue()));
+        rowCount.valueProperty().addListener((obs, oldValue, value) -> update.run());
+        columnCount.valueProperty().addListener((obs, oldValue, value) -> update.run());
+        update.run();
+    }
+
+    private static List<String> dimensions() {
+        return java.util.stream.IntStream.rangeClosed(1, 8).mapToObj(String::valueOf).toList();
+    }
+
+    private void rebuildMatrixGrid(String name, GridPane grid, int rowCount, int columnCount) {
+        grid.getChildren().clear();
+        for (int row = 0; row < rowCount; row++) {
+            for (int column = 0; column < columnCount; column++) {
+                String id = "matrix" + name + "_" + row + "_" + column;
+                TextField cell = new TextField("0");
+                cell.setPromptText("r" + (row + 1) + " c" + (column + 1));
+                cell.setPrefColumnCount(5);
+                cell.getStyleClass().add("mode-field");
+                fields.put(id, cell);
+                grid.add(cell, column, row);
+            }
+        }
     }
 
     private void setupComplex() {
-        descriptionLabel.setText("Enter a + bi and c + di as real and imaginary parts, then choose an operation.");
-        addChoice("operation", "Operation", List.of("Add", "Subtract", "Multiply", "Divide", "Magnitude of A"));
+        descriptionLabel.setText("Enter the real and imaginary parts of A and B, then choose an operation. Magnitude only needs A.");
+        ComboBox<String> operation = addChoice("operation", "Operation", List.of("Add", "Subtract", "Multiply", "Divide", "Magnitude of A"));
         addField("a", "Real part a", "3");
         addField("b", "Imaginary part b", "2");
         addField("c", "Real part c", "1");
         addField("d", "Imaginary part d", "-4");
+        operation.valueProperty().addListener((obs, oldValue, value) -> {
+            setRowVisible("c", !"Magnitude of A".equals(value));
+            setRowVisible("d", !"Magnitude of A".equals(value));
+        });
     }
 
     private void setupPolynomial() {
-        descriptionLabel.setText("Enter coefficients from highest power to constant, separated by commas. Evaluation accepts any degree; real roots are supported through degree two.");
-        addChoice("operation", "Operation", List.of("Evaluate", "Real roots"));
-        addField("coefficients", "Coefficients", "1, 0, -4");
+        descriptionLabel.setText("Choose the polynomial degree and enter one coefficient for each power from highest to constant. Real roots are supported through degree two.");
+        ComboBox<String> operation = addChoice("operation", "Operation", List.of("Evaluate", "Real roots"));
+        ComboBox<String> degree = addChoice("degree", "Degree", java.util.stream.IntStream.rangeClosed(1, 10).mapToObj(String::valueOf).toList());
+        degree.setValue("2");
+        polynomialCoefficients = new VBox(6);
+        polynomialCoefficients.getStyleClass().add("coefficient-list");
+        int row = formGrid.getRowCount();
+        formGrid.add(new Label("Coefficients"), 0, row);
+        formGrid.add(polynomialCoefficients, 1, row);
+        rows.put("coefficients", polynomialCoefficients);
+        degree.valueProperty().addListener((obs, oldValue, value) -> rebuildCoefficients(Integer.parseInt(value)));
+        rebuildCoefficients(Integer.parseInt(degree.getValue()));
         addField("x", "x value", "2");
+        operation.valueProperty().addListener((obs, oldValue, value) -> setRowVisible("x", "Evaluate".equals(value)));
+        setRowVisible("x", true);
+    }
+
+    private void rebuildCoefficients(int degree) {
+        Map<String, String> previousValues = new LinkedHashMap<>();
+        for (Map.Entry<String, TextField> entry : fields.entrySet()) {
+            if (entry.getKey().startsWith("coefficient")) previousValues.put(entry.getKey(), entry.getValue().getText());
+        }
+        polynomialCoefficients.getChildren().clear();
+        for (int power = degree; power >= 0; power--) {
+            String id = "coefficient" + power;
+            TextField coefficient = new TextField(previousValues.getOrDefault(id, power == degree ? "1" : "0"));
+            fields.put(id, coefficient);
+            coefficient.setPromptText("coefficient of x^" + power);
+            if (!coefficient.getStyleClass().contains("mode-field")) coefficient.getStyleClass().add("mode-field");
+            polynomialCoefficients.getChildren().add(new HBox(8, new Label("x^" + power), coefficient));
+        }
     }
 
     private void setupSolver() {
@@ -108,11 +195,17 @@ public class CalculationModeController {
     }
 
     private void setupCalculus() {
-        descriptionLabel.setText("Numerical derivative uses a centered difference. Definite integrals use Simpson's rule. Use x in the function.");
-        addChoice("operation", "Operation", List.of("Derivative at x", "Definite integral"));
+        descriptionLabel.setText("Use x in the function. Derivatives use a centered difference; definite integrals use Simpson's rule.");
+        ComboBox<String> operation = addChoice("operation", "Operation", List.of("Derivative at x", "Definite integral"));
         addField("function", "Function f(x)", "sin(x)");
-        addField("lower", "x / Lower bound", "0");
-        addField("upper", "Upper bound (integral only)", "3.14159265359");
+        addField("lower", "x value", "0");
+        addField("upper", "Upper bound", "3.14159265359");
+        operation.valueProperty().addListener((obs, oldValue, value) -> {
+            boolean integral = "Definite integral".equals(value);
+            setRowVisible("upper", integral);
+            ((Label) rows.get("lower")).setText(integral ? "Lower bound" : "x value");
+        });
+        setRowVisible("upper", false);
     }
 
     private void setupCombinatorics() {
@@ -131,10 +224,10 @@ public class CalculationModeController {
         ComboBox<String> to = addChoice("to", "To", unitsFor("Length"));
         category.valueProperty().addListener((obs, oldValue, newValue) -> {
             boolean constantMode = "Constants".equals(newValue);
-            choices.get("constant").setDisable(!constantMode);
-            fields.get("value").setDisable(constantMode);
-            from.setDisable(constantMode);
-            to.setDisable(constantMode);
+            setRowVisible("constant", constantMode);
+            setRowVisible("value", !constantMode);
+            setRowVisible("from", !constantMode);
+            setRowVisible("to", !constantMode);
             from.setItems(FXCollections.observableArrayList(unitsFor(newValue)));
             to.setItems(FXCollections.observableArrayList(unitsFor(newValue)));
             if (!constantMode) {
@@ -143,21 +236,20 @@ public class CalculationModeController {
             }
         });
         category.setValue("Constants");
-        category.getOnAction();
-        choices.get("constant").setDisable(false);
-        fields.get("value").setDisable(true);
-        from.setDisable(true);
-        to.setDisable(true);
+        setRowVisible("constant", true);
+        setRowVisible("value", false);
+        setRowVisible("from", false);
+        setRowVisible("to", false);
     }
 
     private String calculateMatrix() {
-        double[][] a = parseMatrix(text("matrixA"));
+        double[][] a = readMatrix("A");
         String operation = choice("operation");
         return switch (operation) {
             case "Determinant" -> format(determinant(a));
             case "Inverse" -> formatMatrix(inverse(a));
             case "Add", "Subtract" -> {
-                double[][] b = parseMatrix(text("matrixB"));
+                double[][] b = readMatrix("B");
                 requireSameShape(a, b);
                 double[][] result = new double[a.length][a[0].length];
                 double sign = operation.equals("Add") ? 1 : -1;
@@ -165,7 +257,7 @@ public class CalculationModeController {
                 yield formatMatrix(result);
             }
             case "Multiply" -> {
-                double[][] b = parseMatrix(text("matrixB"));
+                double[][] b = readMatrix("B");
                 if (a[0].length != b.length) throw new IllegalArgumentException("Matrix A columns must match Matrix B rows.");
                 double[][] result = new double[a.length][b[0].length];
                 for (int i = 0; i < a.length; i++) for (int j = 0; j < b[0].length; j++)
@@ -177,10 +269,13 @@ public class CalculationModeController {
     }
 
     private String calculateComplex() {
-        double a = value("a"), b = value("b"), c = value("c"), d = value("d");
+        double a = value("a"), b = value("b");
+        String operation = choice("operation");
+        if (operation.equals("Magnitude of A")) return "|A| = " + format(Math.hypot(a, b));
+        double c = value("c"), d = value("d");
         double real;
         double imaginary;
-        switch (choice("operation")) {
+        switch (operation) {
             case "Add" -> { real = a + c; imaginary = b + d; }
             case "Subtract" -> { real = a - c; imaginary = b - d; }
             case "Multiply" -> { real = a * c - b * d; imaginary = a * d + b * c; }
@@ -190,23 +285,24 @@ public class CalculationModeController {
                 real = (a * c + b * d) / denominator;
                 imaginary = (b * c - a * d) / denominator;
             }
-            case "Magnitude of A" -> { return "|A| = " + format(Math.hypot(a, b)); }
             default -> throw new IllegalArgumentException("Select a complex operation.");
         }
         return format(real) + (imaginary < 0 ? " - " + format(-imaginary) + "i" : " + " + format(imaginary) + "i");
     }
 
     private String calculatePolynomial() {
-        double[] coefficients = parseNumbers(text("coefficients"));
+        int selectedDegree = Integer.parseInt(choice("degree"));
+        double[] coefficients = new double[selectedDegree + 1];
+        for (int i = 0; i <= selectedDegree; i++) coefficients[i] = value("coefficient" + (selectedDegree - i));
         while (coefficients.length > 1 && coefficients[0] == 0) coefficients = java.util.Arrays.copyOfRange(coefficients, 1, coefficients.length);
         if (choice("operation").equals("Evaluate")) {
             double x = value("x"), result = 0;
             for (double coefficient : coefficients) result = result * x + coefficient;
             return "P(" + format(x) + ") = " + format(result);
         }
-        int degree = coefficients.length - 1;
-        if (degree == 1) return "Real root: " + format(-coefficients[1] / coefficients[0]);
-        if (degree != 2) throw new IllegalArgumentException("Real roots are available for linear and quadratic polynomials.");
+        int effectiveDegree = coefficients.length - 1;
+        if (effectiveDegree == 1) return "Real root: " + format(-coefficients[1] / coefficients[0]);
+        if (effectiveDegree != 2) throw new IllegalArgumentException("Real roots are available for linear and quadratic polynomials.");
         double discriminant = coefficients[1] * coefficients[1] - 4 * coefficients[0] * coefficients[2];
         if (discriminant < 0) return "No real roots (discriminant < 0).";
         double root = Math.sqrt(discriminant);
@@ -296,38 +392,72 @@ public class CalculationModeController {
 
     private ComboBox<String> addChoice(String id, String label, List<String> values) {
         int row = formGrid.getRowCount();
-        formGrid.add(new Label(label), 0, row);
+        Label rowLabel = new Label(label);
+        formGrid.add(rowLabel, 0, row);
         ComboBox<String> combo = new ComboBox<>(FXCollections.observableArrayList(values));
         combo.setMaxWidth(Double.MAX_VALUE);
         combo.getStyleClass().add("mode-field");
         combo.getSelectionModel().selectFirst();
         formGrid.add(combo, 1, row);
+        rows.put(id, rowLabel);
+        rows.put(id + "Control", combo);
         choices.put(id, combo);
         return combo;
     }
 
     private TextField addField(String id, String label, String prompt) {
         int row = formGrid.getRowCount();
-        formGrid.add(new Label(label), 0, row);
+        Label rowLabel = new Label(label);
+        formGrid.add(rowLabel, 0, row);
         TextField field = new TextField();
         field.setPromptText(prompt);
         field.setText(prompt);
         field.setMaxWidth(Double.MAX_VALUE);
         field.getStyleClass().add("mode-field");
         formGrid.add(field, 1, row);
+        rows.put(id, rowLabel);
+        rows.put(id + "Control", field);
         fields.put(id, field);
         return field;
     }
 
+    private void setRowVisible(String id, boolean visible) {
+        Node node = rows.get(id);
+        if (node != null) { node.setVisible(visible); node.setManaged(visible); }
+        Node control = rows.get(id + "Control");
+        if (control != null) { control.setVisible(visible); control.setManaged(visible); }
+    }
+
+    private double[][] readMatrix(String name) {
+        int rowCount = Integer.parseInt(choice("matrix" + name + "Rows"));
+        int columnCount = Integer.parseInt(choice("matrix" + name + "Columns"));
+        double[][] matrix = new double[rowCount][columnCount];
+        for (int row = 0; row < rowCount; row++) {
+            for (int column = 0; column < columnCount; column++) {
+                matrix[row][column] = value("matrix" + name + "_" + row + "_" + column);
+            }
+        }
+        return matrix;
+    }
+
     private String text(String id) {
         String value = fields.get(id).getText().trim();
-        if (value.isEmpty()) throw new IllegalArgumentException("Enter a value for " + id + ".");
+        if (value.isEmpty()) throw new IllegalArgumentException("Enter a value for " + inputName(id) + ".");
         return value;
     }
 
     private double value(String id) {
         try { return Double.parseDouble(text(id)); }
-        catch (NumberFormatException ex) { throw new IllegalArgumentException("Enter a valid number for " + id + "."); }
+        catch (NumberFormatException ex) { throw new IllegalArgumentException("Enter a valid number for " + inputName(id) + "."); }
+    }
+
+    private static String inputName(String id) {
+        if (id.startsWith("matrix") && id.matches("matrix[AB]_\\d+_\\d+")) {
+            String[] parts = id.substring(8).split("_");
+            return "Matrix " + id.charAt(6) + ", row " + (Integer.parseInt(parts[0]) + 1) + ", column " + (Integer.parseInt(parts[1]) + 1);
+        }
+        if (id.startsWith("coefficient")) return "coefficient of x^" + id.substring("coefficient".length());
+        return id;
     }
 
     private int integer(String id) {
@@ -344,19 +474,6 @@ public class CalculationModeController {
     private double eval(String expression, double x) {
         try { return evaluator.evaluate(expression, x, AngleMode.RADIANS); }
         catch (RuntimeException ex) { throw new IllegalArgumentException("Cannot evaluate f(x): " + ex.getMessage()); }
-    }
-
-    private static double[][] parseMatrix(String source) {
-        String[] rows = source.split(";");
-        double[][] matrix = new double[rows.length][];
-        for (int i = 0; i < rows.length; i++) matrix[i] = parseNumbers(rows[i]);
-        for (double[] row : matrix) if (row.length != matrix[0].length) throw new IllegalArgumentException("Each matrix row must have the same number of entries.");
-        return matrix;
-    }
-
-    private static double[] parseNumbers(String source) {
-        try { return java.util.Arrays.stream(source.trim().split("\\s*,\\s*")).mapToDouble(Double::parseDouble).toArray(); }
-        catch (NumberFormatException ex) { throw new IllegalArgumentException("Enter comma-separated numbers."); }
     }
 
     private static void requireSquare(double[][] matrix) {

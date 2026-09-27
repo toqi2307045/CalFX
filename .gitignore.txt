@@ -26,7 +26,8 @@ bin/
 
 ## Visual Studio Code
 .vscode/
-
+## IntelliJ
+.idea
 # OS Generated Files
 .DS_Store
 Thumbs.db

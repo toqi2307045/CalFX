@@ -493,6 +493,11 @@
     -fx-background-color: -mx-bg;
 }
 
+.mode-scroll,
+.mode-scroll > .viewport {
+    -fx-background-color: -mx-bg;
+}
+
 .mode-grid {
     -fx-padding: 8;
 }
@@ -536,6 +541,32 @@
     -fx-border-color: -mx-border;
     -fx-border-radius: 8;
     -fx-text-fill: -mx-text;
+}
+
+.matrix-input-section {
+    -fx-padding: 10;
+    -fx-background-color: -mx-bg;
+    -fx-background-radius: 10;
+    -fx-border-color: -mx-border;
+    -fx-border-radius: 10;
+}
+
+.matrix-input-section > .label {
+    -fx-font-weight: bold;
+}
+
+.matrix-input-grid .text-field {
+    -fx-pref-width: 58;
+    -fx-min-width: 48;
+}
+
+.coefficient-list .label {
+    -fx-min-width: 42;
+    -fx-font-weight: bold;
+}
+
+.coefficient-list .text-field {
+    -fx-pref-width: 110;
 }
 
 .mode-result {
