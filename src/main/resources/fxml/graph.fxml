@@ -18,6 +18,8 @@
         <HBox styleClass="header-bar" alignment="CENTER_LEFT" spacing="16">
             <Button text="← Home" styleClass="header-button" onAction="#onHome"/>
             <Label text="Function graph" styleClass="header-title"/>
+            <Region HBox.hgrow="ALWAYS"/>
+            <Button text="History" styleClass="header-button" onAction="#onHistory"/>
         </HBox>
     </top>
 

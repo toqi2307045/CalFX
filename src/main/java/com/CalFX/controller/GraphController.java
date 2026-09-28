@@ -4,6 +4,7 @@ import com.CalFX.Navigator;
 import com.CalFX.calculator.AngleMode;
 import com.CalFX.calculator.ExpressionEvaluator;
 import com.CalFX.calculator.PlaceholderEvaluator;
+import com.CalFX.db.CalculationHistoryStore;
 import com.CalFX.exception.ExpressionException;
 import com.CalFX.graph.GraphPane;
 import javafx.application.Platform;
@@ -23,6 +24,7 @@ public class GraphController {
     private static final double ZOOM_STEP = 1.25;
 
     private final Navigator navigator;
+    private final CalculationHistoryStore historyStore;
     private final ExpressionEvaluator evaluator = new PlaceholderEvaluator(); // swap in phase 3
 
     @FXML private TextField functionField;
@@ -39,8 +41,9 @@ public class GraphController {
     @FXML private StackPane graphContainer;
     private GraphPane graphPane;
 
-    public GraphController(Navigator navigator) {
+    public GraphController(Navigator navigator, CalculationHistoryStore historyStore) {
         this.navigator = navigator;
+        this.historyStore = historyStore;
     }
 
     @FXML
@@ -93,15 +96,17 @@ public class GraphController {
     private void onPlot() {
         String expression = functionField.getText().trim();
         if (expression.isEmpty()) {
-            showMessage("Type a function of x first.", true);
+            showMessage("Enter an expression first.", true);
             return;
         }
         PlotType type = plotTypeBox.getValue();
+        String historyExpression = "";
         try {
             switch (type) {
                 case EXPLICIT -> {
                     evaluator.evaluate(expression, 0, AngleMode.RADIANS);
                     graphPane.setFunction(x -> evaluateSafely(expression, x));
+                    historyExpression = "y = " + expression;
                 }
                 case PARAMETRIC -> {
                     String yExpression = secondaryFunctionField.getText().trim();
@@ -113,6 +118,8 @@ public class GraphController {
                     evaluator.evaluate(yFormula, 0, AngleMode.RADIANS);
                     graphPane.setParametricCurve(t -> evaluateSafely(xFormula, t),
                             t -> evaluateSafely(yFormula, t), range[0], range[1]);
+                    historyExpression = "x(t) = " + expression + ", y(t) = " + yExpression
+                            + "; t = [" + range[0] + ", " + range[1] + "]";
                 }
                 case POLAR -> {
                     double[] range = readRange();
@@ -120,16 +127,19 @@ public class GraphController {
                     evaluator.evaluate(radius, 0, AngleMode.RADIANS);
                     graphPane.setParametricCurve(t -> evaluateSafely(radius, t) * Math.cos(t),
                             t -> evaluateSafely(radius, t) * Math.sin(t), range[0], range[1]);
+                    historyExpression = "r(theta) = " + expression + "; theta = [" + range[0] + ", " + range[1] + "]";
                 }
                 case IMPLICIT -> {
                     evaluator.evaluate(expression, 0, 0, AngleMode.RADIANS);
                     graphPane.setImplicitFunction((x, y) -> evaluateSafely(expression, x, y));
+                    historyExpression = expression + " = 0";
                 }
             }
         } catch (ExpressionException | IllegalArgumentException e) {
             showMessage(e.getMessage(), true);
             return;
         }
+        historyStore.insertAsync("Graph - " + type.description, historyExpression, "Graph plotted");
         showMessage("Plotting " + type.description + ": " + expression, false);
     }
 
@@ -180,6 +190,11 @@ public class GraphController {
     @FXML
     private void onHome() {
         navigator.showHome();
+    }
+
+    @FXML
+    private void onHistory() {
+        navigator.showHistory();
     }
 
     private double evaluateSafely(String expression, double x) {

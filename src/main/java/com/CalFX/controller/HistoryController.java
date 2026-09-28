@@ -22,7 +22,7 @@ import javafx.geometry.Insets;
 import javafx.scene.control.TableCell;
 import javafx.util.Callback;
 
-/** Shows and manages the last 100 saved calculations, newest first. */
+/** Shows and manages the last 100 saved calculations, conversions, and graph functions. */
 public class HistoryController {
 
     private static final PseudoClass ERROR = PseudoClass.getPseudoClass("error");
@@ -51,7 +51,7 @@ public class HistoryController {
         timeColumn.setCellValueFactory(new PropertyValueFactory<>("timestamp"));
         actionsColumn.setCellValueFactory(cell -> new ReadOnlyObjectWrapper<>(cell.getValue()));
         actionsColumn.setCellFactory(actionCellFactory());
-        table.setPlaceholder(new Label("No calculations saved yet."));
+        table.setPlaceholder(new Label("No history saved yet."));
 
         load();
     }
@@ -131,10 +131,10 @@ public class HistoryController {
         historyStore.loadRecentAsync(
                 records -> {
                     table.setItems(FXCollections.observableArrayList(records));
-                    statusLabel.setText(records.size() + " of the last " + 100 + " calculations");
+                    statusLabel.setText(records.size() + " of the last " + 100 + " history entries");
                 },
                 error -> {
-                    statusLabel.setText("Could not load the saved calculations.");
+                    statusLabel.setText("Could not load saved history.");
                     statusLabel.pseudoClassStateChanged(ERROR, true);
                 });
     }

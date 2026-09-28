@@ -16,7 +16,7 @@
     <top>
         <HBox styleClass="header-bar" alignment="CENTER_LEFT" spacing="16">
             <Button text="← Home" styleClass="header-button" onAction="#onHome"/>
-            <Label text="Saved calculations" styleClass="header-title"/>
+            <Label text="History" styleClass="header-title"/>
             <Region HBox.hgrow="ALWAYS"/>
             <Button text="Refresh" styleClass="header-button" onAction="#onRefresh"/>
         </HBox>
