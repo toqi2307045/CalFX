@@ -425,6 +425,14 @@
     -fx-font-size: 13px;
 }
 
+.plot-type-box {
+    -fx-background-color: -mx-bg;
+    -fx-background-radius: 10;
+    -fx-border-color: -mx-border;
+    -fx-border-radius: 10;
+    -fx-font-size: 14px;
+}
+
 .history-action-button {
     -fx-background-color: #171717;
     -fx-background-radius: 6;

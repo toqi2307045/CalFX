@@ -17,9 +17,13 @@ import javafx.scene.text.Font;
 import javafx.scene.text.TextAlignment;
 
 import java.util.Locale;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.function.BooleanSupplier;
 import java.util.function.DoubleUnaryOperator;
+import java.util.function.ToDoubleBiFunction;
 
 /**
  * The graph window: grid, axes, tick labels and one plotted function.
@@ -67,6 +71,11 @@ public class GraphPane extends Pane {
     private Task<Samples> samplingTask;     // newest task; results of older tasks are ignored
     private Samples samples;                // last finished result, null when nothing is plotted
     private DoubleUnaryOperator function;
+    private DoubleUnaryOperator parametricX;
+    private DoubleUnaryOperator parametricY;
+    private ToDoubleBiFunction<Double, Double> implicitFunction;
+    private double parameterMin;
+    private double parameterMax;
     private double centerX;                 // math coordinates at the middle of the pane
     private double centerY;
     private double scale = DEFAULT_SCALE;
@@ -105,6 +114,33 @@ public class GraphPane extends Pane {
      */
     public void setFunction(DoubleUnaryOperator function) {
         this.function = function;
+        parametricX = null;
+        parametricY = null;
+        implicitFunction = null;
+        samples = null;
+        redraw();
+        requestSampling();
+    }
+
+    /** Plots a parametric curve (x(t), y(t)) over the given finite interval. */
+    public void setParametricCurve(DoubleUnaryOperator x, DoubleUnaryOperator y, double min, double max) {
+        function = null;
+        parametricX = x;
+        parametricY = y;
+        implicitFunction = null;
+        parameterMin = min;
+        parameterMax = max;
+        samples = null;
+        redraw();
+        requestSampling();
+    }
+
+    /** Draws the zero contour of f(x,y). */
+    public void setImplicitFunction(ToDoubleBiFunction<Double, Double> f) {
+        function = null;
+        parametricX = null;
+        parametricY = null;
+        implicitFunction = f;
         samples = null;
         redraw();
         requestSampling();
@@ -197,7 +233,8 @@ public class GraphPane extends Pane {
     /** Called after every change of the view: repaint at once, and resample only if needed. */
     private void viewChanged() {
         redraw();
-        if (function != null && !samplesCoverView()) {
+        if (implicitFunction != null || (function != null && !samplesCoverView())
+                || (parametricX != null && (samples == null || samples.scale() != scale))) {
             requestSampling();
         }
     }
@@ -220,20 +257,46 @@ public class GraphPane extends Pane {
             samplingTask.cancel();
             samplingTask = null;
         }
-        if (function == null || getWidth() <= 0 || worker.isShutdown()) {
+        if ((function == null && parametricX == null && implicitFunction == null)
+                || getWidth() <= 0 || worker.isShutdown()) {
             return;
         }
 
         // copy everything the worker needs now: the worker must never read the pane's fields
         final DoubleUnaryOperator f = function;
+        final DoubleUnaryOperator pxFunction = parametricX;
+        final DoubleUnaryOperator pyFunction = parametricY;
+        final ToDoubleBiFunction<Double, Double> implicit = implicitFunction;
+        final double tMin = parameterMin;
+        final double tMax = parameterMax;
         final double from = toMathX(-getWidth());
         final double step = 1 / scale;
         final double sampleScale = scale;
         final int count = (int) Math.ceil(3 * getWidth()) + 1;
+        final double viewCenterX = centerX;
+        final double viewCenterY = centerY;
+        final double viewWidth = getWidth();
+        final double viewHeight = getHeight();
 
         Task<Samples> task = new Task<>() {
             @Override
             protected Samples call() {
+                if (implicit != null) {
+                    return sampleImplicit(implicit, viewCenterX, viewCenterY, sampleScale,
+                            viewWidth, viewHeight, this::isCancelled);
+                }
+                if (pxFunction != null) {
+                    int curveCount = Math.max(1200, Math.min(12000, (int) (viewWidth * 8)));
+                    double[] xs = new double[curveCount + 1];
+                    double[] ys = new double[curveCount + 1];
+                    for (int i = 0; i <= curveCount; i++) {
+                        if (isCancelled()) return null;
+                        double t = tMin + (tMax - tMin) * i / curveCount;
+                        xs[i] = pxFunction.applyAsDouble(t);
+                        ys[i] = pyFunction.applyAsDouble(t);
+                    }
+                    return new Samples(xs, ys, sampleScale);
+                }
                 double[] xs = new double[count];
                 double[] ys = new double[count];
                 for (int i = 0; i < count; i++) {
@@ -271,6 +334,58 @@ public class GraphPane extends Pane {
             samplingTask = null;
         }
         worker.shutdownNow();
+    }
+
+    private Samples sampleImplicit(ToDoubleBiFunction<Double, Double> f, double cx, double cy,
+                                   double sampleScale, double width, double height,
+                                   BooleanSupplier cancelled) {
+        double cell = 5;
+        int columns = Math.max(1, (int) Math.ceil(width / cell));
+        int rows = Math.max(1, (int) Math.ceil(height / cell));
+        double dx = width / columns;
+        double dy = height / rows;
+        double[][] values = new double[columns + 1][rows + 1];
+        for (int i = 0; i <= columns; i++) {
+            if (cancelled.getAsBoolean()) return null;
+            double x = cx + (i * dx - width / 2) / sampleScale;
+            for (int j = 0; j <= rows; j++) {
+                double y = cy - (j * dy - height / 2) / sampleScale;
+                values[i][j] = f.applyAsDouble(x, y);
+            }
+        }
+        List<Double> outX = new ArrayList<>();
+        List<Double> outY = new ArrayList<>();
+        double[] ex = new double[4];
+        double[] ey = new double[4];
+        for (int i = 0; i < columns; i++) {
+            for (int j = 0; j < rows; j++) {
+                double x0 = cx + (i * dx - width / 2) / sampleScale;
+                double x1 = cx + ((i + 1) * dx - width / 2) / sampleScale;
+                double y0 = cy - (j * dy - height / 2) / sampleScale;
+                double y1 = cy - ((j + 1) * dy - height / 2) / sampleScale;
+                double[] v = {values[i][j], values[i + 1][j], values[i + 1][j + 1], values[i][j + 1]};
+                double[] vx = {x0, x1, x1, x0};
+                double[] vy = {y0, y0, y1, y1};
+                int crossings = 0;
+                for (int edge = 0; edge < 4; edge++) {
+                    int next = (edge + 1) % 4;
+                    if (!Double.isFinite(v[edge]) || !Double.isFinite(v[next])
+                            || (v[edge] < 0) == (v[next] < 0)) continue;
+                    double fraction = v[edge] / (v[edge] - v[next]);
+                    ex[crossings] = vx[edge] + fraction * (vx[next] - vx[edge]);
+                    ey[crossings] = vy[edge] + fraction * (vy[next] - vy[edge]);
+                    crossings++;
+                }
+                for (int k = 0; k + 1 < crossings; k += 2) {
+                    outX.add(ex[k]); outY.add(ey[k]);
+                    outX.add(ex[k + 1]); outY.add(ey[k + 1]);
+                    outX.add(Double.NaN); outY.add(Double.NaN);
+                }
+            }
+        }
+        double[] xs = outX.stream().mapToDouble(Double::doubleValue).toArray();
+        double[] ys = outY.stream().mapToDouble(Double::doubleValue).toArray();
+        return new Samples(xs, ys, sampleScale);
     }
 
     // ---------------------------------------------------------------- drawing (JavaFX thread only)

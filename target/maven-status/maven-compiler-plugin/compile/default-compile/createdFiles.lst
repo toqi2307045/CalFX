@@ -3,6 +3,7 @@ com\CalFX\controller\HomeController.class
 com\CalFX\MainApp.class
 com\CalFX\controller\HistoryController.class
 com\CalFX\currency\CurrencyCode.class
+com\CalFX\controller\GraphController$PlotType.class
 com\CalFX\graph\GraphPane.class
 com\CalFX\controller\GraphController.class
 com\CalFX\currency\ExchangeRateService$RatesSnapshot.class

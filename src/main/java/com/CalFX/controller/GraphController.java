@@ -10,21 +10,30 @@ import javafx.application.Platform;
 import javafx.css.PseudoClass;
 import javafx.fxml.FXML;
 import javafx.scene.control.Label;
+import javafx.scene.control.ComboBox;
 import javafx.scene.control.TextField;
+import javafx.scene.layout.HBox;
 import javafx.scene.layout.StackPane;
 
 /** Connects the graph screen to the graph window. Graphs use radians. */
 public class GraphController {
 
     private static final PseudoClass ERROR = PseudoClass.getPseudoClass("error");
-    private static final String HINT =
-            "Use x as the variable, for example sin(x), x^2 - 4 or 2x + 1. Scroll to zoom, drag to pan.";
+    private static final String HINT = "Choose a plot type and enter an expression. Scroll to zoom, drag to pan.";
     private static final double ZOOM_STEP = 1.25;
 
     private final Navigator navigator;
     private final ExpressionEvaluator evaluator = new PlaceholderEvaluator(); // swap in phase 3
 
     @FXML private TextField functionField;
+    @FXML private TextField secondaryFunctionField;
+    @FXML private TextField rangeMinField;
+    @FXML private TextField rangeMaxField;
+    @FXML private ComboBox<PlotType> plotTypeBox;
+    @FXML private Label expressionLabel;
+    @FXML private Label secondaryExpressionLabel;
+    @FXML private Label rangeLabel;
+    @FXML private HBox secondaryInputRow;
     @FXML private Label messageLabel;
     @FXML private Label coordinatesLabel;
     @FXML private StackPane graphContainer;
@@ -40,7 +49,44 @@ public class GraphController {
         graphContainer.getChildren().setAll(graphPane);
         coordinatesLabel.textProperty().bind(graphPane.coordinatesTextProperty());
         showMessage(HINT, false);
+        plotTypeBox.getItems().setAll(PlotType.values());
+        plotTypeBox.getSelectionModel().select(PlotType.EXPLICIT);
         Platform.runLater(functionField::requestFocus);
+    }
+
+    @FXML
+    private void onPlotTypeChanged() {
+        PlotType type = plotTypeBox.getValue();
+        if (type == null) return;
+        boolean twoExpressions = type == PlotType.PARAMETRIC;
+        secondaryInputRow.setVisible(type == PlotType.PARAMETRIC || type == PlotType.POLAR);
+        secondaryInputRow.setManaged(type == PlotType.PARAMETRIC || type == PlotType.POLAR);
+        secondaryFunctionField.setVisible(twoExpressions);
+        secondaryFunctionField.setManaged(twoExpressions);
+        secondaryExpressionLabel.setVisible(twoExpressions);
+        secondaryExpressionLabel.setManaged(twoExpressions);
+        rangeLabel.setText(type == PlotType.POLAR ? "theta range" : "t range");
+        expressionLabel.setText(switch (type) {
+            case EXPLICIT -> "f(x) =";
+            case PARAMETRIC -> "x(t) =";
+            case POLAR -> "r(theta) =";
+            case IMPLICIT -> "f(x,y) = 0:";
+        });
+        functionField.setPromptText(switch (type) {
+            case EXPLICIT -> "e.g. sin(x) + x^2 / 5";
+            case PARAMETRIC -> "e.g. cos(t)";
+            case POLAR -> "e.g. 2 + cos(3*theta)";
+            case IMPLICIT -> "e.g. x^2 + y^2 - 9";
+        });
+        secondaryFunctionField.setPromptText("e.g. sin(t)");
+        if (type == PlotType.POLAR) {
+            rangeMinField.setText("0");
+            rangeMaxField.setText("6.283185");
+        } else if (type == PlotType.PARAMETRIC) {
+            rangeMinField.setText("-10");
+            rangeMaxField.setText("10");
+        }
+        showMessage(HINT, false);
     }
 
     @FXML
@@ -50,21 +96,47 @@ public class GraphController {
             showMessage("Type a function of x first.", true);
             return;
         }
+        PlotType type = plotTypeBox.getValue();
         try {
-            evaluator.evaluate(expression, 0, AngleMode.RADIANS); // catches syntax errors before plotting
-        } catch (ExpressionException e) {
+            switch (type) {
+                case EXPLICIT -> {
+                    evaluator.evaluate(expression, 0, AngleMode.RADIANS);
+                    graphPane.setFunction(x -> evaluateSafely(expression, x));
+                }
+                case PARAMETRIC -> {
+                    String yExpression = secondaryFunctionField.getText().trim();
+                    if (yExpression.isEmpty()) throw new ExpressionException("Enter both x(t) and y(t).");
+                    double[] range = readRange();
+                    String xFormula = asXVariable(expression);
+                    String yFormula = asXVariable(yExpression);
+                    evaluator.evaluate(xFormula, 0, AngleMode.RADIANS);
+                    evaluator.evaluate(yFormula, 0, AngleMode.RADIANS);
+                    graphPane.setParametricCurve(t -> evaluateSafely(xFormula, t),
+                            t -> evaluateSafely(yFormula, t), range[0], range[1]);
+                }
+                case POLAR -> {
+                    double[] range = readRange();
+                    String radius = expression.replaceAll("(?i)theta", "x");
+                    evaluator.evaluate(radius, 0, AngleMode.RADIANS);
+                    graphPane.setParametricCurve(t -> evaluateSafely(radius, t) * Math.cos(t),
+                            t -> evaluateSafely(radius, t) * Math.sin(t), range[0], range[1]);
+                }
+                case IMPLICIT -> {
+                    evaluator.evaluate(expression, 0, 0, AngleMode.RADIANS);
+                    graphPane.setImplicitFunction((x, y) -> evaluateSafely(expression, x, y));
+                }
+            }
+        } catch (ExpressionException | IllegalArgumentException e) {
             showMessage(e.getMessage(), true);
             return;
         }
-        // GraphPane calls this lambda on a background thread: it may only use thread-safe objects
-        // (the evaluator builds a new parser for every call, so it shares no state)
-        graphPane.setFunction(x -> evaluateSafely(expression, x));
-        showMessage("Plotting f(x) = " + expression, false);
+        showMessage("Plotting " + type.description + ": " + expression, false);
     }
 
     @FXML
     private void onClear() {
         functionField.clear();
+        secondaryFunctionField.clear();
         graphPane.setFunction(null);
         showMessage(HINT, false);
         functionField.requestFocus();
@@ -96,6 +168,37 @@ public class GraphController {
         } catch (ExpressionException e) {
             return Double.NaN;
         }
+    }
+
+    private double evaluateSafely(String expression, double x, double y) {
+        try {
+            return evaluator.evaluate(expression, x, y, AngleMode.RADIANS);
+        } catch (ExpressionException e) {
+            return Double.NaN;
+        }
+    }
+
+    private double[] readRange() {
+        try {
+            double min = Double.parseDouble(rangeMinField.getText().trim());
+            double max = Double.parseDouble(rangeMaxField.getText().trim());
+            if (!Double.isFinite(min) || !Double.isFinite(max) || min >= max) throw new NumberFormatException();
+            return new double[]{min, max};
+        } catch (NumberFormatException e) {
+            throw new IllegalArgumentException("Enter a valid range where the minimum is less than the maximum.");
+        }
+    }
+
+    private static String asXVariable(String expression) {
+        return expression.replaceAll("(?i)\\bt\\b", "x");
+    }
+
+    private enum PlotType {
+        EXPLICIT("Explicit y=f(x)"), PARAMETRIC("Parametric x(t), y(t)"),
+        POLAR("Polar r(theta)"), IMPLICIT("Implicit f(x,y)=0");
+        private final String description;
+        PlotType(String description) { this.description = description; }
+        @Override public String toString() { return description; }
     }
 
     private void showMessage(String text, boolean isError) {

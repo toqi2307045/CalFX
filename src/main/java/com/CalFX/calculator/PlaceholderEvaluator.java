@@ -26,7 +26,12 @@ public class PlaceholderEvaluator implements ExpressionEvaluator {
 
     @Override
     public double evaluate(String expression, double x, AngleMode angleMode) {
-        return new Parser(expression, x, angleMode).parse();
+        return new Parser(expression, x, 0, angleMode).parse();
+    }
+
+    @Override
+    public double evaluate(String expression, double x, double y, AngleMode angleMode) {
+        return new Parser(expression, x, y, angleMode).parse();
     }
 
     /** One Parser instance per evaluation, so no shared mutable state. */
@@ -34,12 +39,14 @@ public class PlaceholderEvaluator implements ExpressionEvaluator {
 
         private final String text;
         private final double x;
+        private final double y;
         private final AngleMode mode;
         private int pos;
 
-        Parser(String text, double x, AngleMode mode) {
+        Parser(String text, double x, double y, AngleMode mode) {
             this.text = text;
             this.x = x;
+            this.y = y;
             this.mode = mode;
         }
 
@@ -168,6 +175,7 @@ public class PlaceholderEvaluator implements ExpressionEvaluator {
             String name = text.substring(start, pos);
             return switch (name) {
                 case "x" -> x;
+                case "y" -> y;
                 case "e" -> Math.E;
                 case "pi" -> Math.PI;
                 default -> functionCall(name);
