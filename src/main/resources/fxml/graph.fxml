@@ -56,6 +56,10 @@
             <HBox alignment="CENTER_LEFT" spacing="10">
                 <Label fx:id="coordinatesLabel" styleClass="coords-label"/>
                 <Region HBox.hgrow="ALWAYS"/>
+                <Button text="X-" accessibleText="Zoom X axis out" styleClass="secondary-button" onAction="#onZoomXOut"/>
+                <Button text="X+" accessibleText="Zoom X axis in" styleClass="secondary-button" onAction="#onZoomXIn"/>
+                <Button text="Y-" accessibleText="Zoom Y axis out" styleClass="secondary-button" onAction="#onZoomYOut"/>
+                <Button text="Y+" accessibleText="Zoom Y axis in" styleClass="secondary-button" onAction="#onZoomYIn"/>
                 <Button text="−" styleClass="secondary-button, round-button" onAction="#onZoomOut"/>
                 <Button text="+" styleClass="secondary-button, round-button" onAction="#onZoomIn"/>
                 <Button text="Reset view" styleClass="secondary-button" onAction="#onResetView"/>

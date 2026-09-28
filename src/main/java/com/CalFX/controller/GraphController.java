@@ -153,6 +153,26 @@ public class GraphController {
     }
 
     @FXML
+    private void onZoomXIn() {
+        graphPane.zoomXAxis(ZOOM_STEP);
+    }
+
+    @FXML
+    private void onZoomXOut() {
+        graphPane.zoomXAxis(1 / ZOOM_STEP);
+    }
+
+    @FXML
+    private void onZoomYIn() {
+        graphPane.zoomYAxis(ZOOM_STEP);
+    }
+
+    @FXML
+    private void onZoomYOut() {
+        graphPane.zoomYAxis(1 / ZOOM_STEP);
+    }
+
+    @FXML
     private void onResetView() {
         graphPane.resetView();
     }

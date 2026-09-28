@@ -53,7 +53,7 @@ public class GraphPane extends Pane {
     private static final Color CURVE = Color.web("#1A56DB");
 
     /** Finished result of one sampling run, in math coordinates. Never modified after creation. */
-    private record Samples(double[] x, double[] y, double scale) {
+    private record Samples(double[] x, double[] y, double scaleX, double scaleY) {
     }
 
     private final Canvas canvas = new Canvas();
@@ -78,7 +78,8 @@ public class GraphPane extends Pane {
     private double parameterMax;
     private double centerX;                 // math coordinates at the middle of the pane
     private double centerY;
-    private double scale = DEFAULT_SCALE;
+    private double scaleX = DEFAULT_SCALE;
+    private double scaleY = DEFAULT_SCALE;
 
     private double dragStartX;
     private double dragStartY;
@@ -149,13 +150,24 @@ public class GraphPane extends Pane {
     public void resetView() {
         centerX = 0;
         centerY = 0;
-        scale = DEFAULT_SCALE;
+        scaleX = DEFAULT_SCALE;
+        scaleY = DEFAULT_SCALE;
         viewChanged();
     }
 
     /** factor greater than 1 zooms in, smaller than 1 zooms out. */
     public void zoomBy(double factor) {
         zoomAt(getWidth() / 2, getHeight() / 2, factor);
+    }
+
+    public void zoomXAxis(double factor) {
+        scaleX = clamp(scaleX * factor, MIN_SCALE, MAX_SCALE);
+        viewChanged();
+    }
+
+    public void zoomYAxis(double factor) {
+        scaleY = clamp(scaleY * factor, MIN_SCALE, MAX_SCALE);
+        viewChanged();
     }
 
     public StringProperty coordinatesTextProperty() {
@@ -189,8 +201,8 @@ public class GraphPane extends Pane {
     }
 
     private void onMouseDragged(MouseEvent event) {
-        centerX = dragCenterX - (event.getX() - dragStartX) / scale;
-        centerY = dragCenterY + (event.getY() - dragStartY) / scale;
+        centerX = dragCenterX - (event.getX() - dragStartX) / scaleX;
+        centerY = dragCenterY + (event.getY() - dragStartY) / scaleY;
         updateCoordinates(event);
         viewChanged();
     }
@@ -203,29 +215,30 @@ public class GraphPane extends Pane {
     private void zoomAt(double pixelX, double pixelY, double factor) {
         double mathX = toMathX(pixelX);
         double mathY = toMathY(pixelY);
-        scale = clamp(scale * factor, MIN_SCALE, MAX_SCALE);
+        scaleX = clamp(scaleX * factor, MIN_SCALE, MAX_SCALE);
+        scaleY = clamp(scaleY * factor, MIN_SCALE, MAX_SCALE);
         // keep the point under the cursor where it was
-        centerX = mathX - (pixelX - getWidth() / 2) / scale;
-        centerY = mathY + (pixelY - getHeight() / 2) / scale;
+        centerX = mathX - (pixelX - getWidth() / 2) / scaleX;
+        centerY = mathY + (pixelY - getHeight() / 2) / scaleY;
         viewChanged();
     }
 
     // ---------------------------------------------------------------- coordinates
 
     private double toScreenX(double x) {
-        return getWidth() / 2 + (x - centerX) * scale;
+        return getWidth() / 2 + (x - centerX) * scaleX;
     }
 
     private double toScreenY(double y) {
-        return getHeight() / 2 - (y - centerY) * scale;
+        return getHeight() / 2 - (y - centerY) * scaleY;
     }
 
     private double toMathX(double pixelX) {
-        return centerX + (pixelX - getWidth() / 2) / scale;
+        return centerX + (pixelX - getWidth() / 2) / scaleX;
     }
 
     private double toMathY(double pixelY) {
-        return centerY - (pixelY - getHeight() / 2) / scale;
+        return centerY - (pixelY - getHeight() / 2) / scaleY;
     }
 
     // ---------------------------------------------------------------- background sampling
@@ -234,14 +247,15 @@ public class GraphPane extends Pane {
     private void viewChanged() {
         redraw();
         if (implicitFunction != null || (function != null && !samplesCoverView())
-                || (parametricX != null && (samples == null || samples.scale() != scale))) {
+                || (parametricX != null && (samples == null || samples.scaleX() != scaleX
+                || samples.scaleY() != scaleY))) {
             requestSampling();
         }
     }
 
     /** True when the finished samples have the current zoom and reach across the visible area. */
     private boolean samplesCoverView() {
-        if (samples == null || samples.scale() != scale) {
+        if (samples == null || samples.scaleX() != scaleX) {
             return false;
         }
         double[] xs = samples.x();
@@ -270,8 +284,9 @@ public class GraphPane extends Pane {
         final double tMin = parameterMin;
         final double tMax = parameterMax;
         final double from = toMathX(-getWidth());
-        final double step = 1 / scale;
-        final double sampleScale = scale;
+        final double step = 1 / scaleX;
+        final double sampleScaleX = scaleX;
+        final double sampleScaleY = scaleY;
         final int count = (int) Math.ceil(3 * getWidth()) + 1;
         final double viewCenterX = centerX;
         final double viewCenterY = centerY;
@@ -282,7 +297,7 @@ public class GraphPane extends Pane {
             @Override
             protected Samples call() {
                 if (implicit != null) {
-                    return sampleImplicit(implicit, viewCenterX, viewCenterY, sampleScale,
+                    return sampleImplicit(implicit, viewCenterX, viewCenterY, sampleScaleX, sampleScaleY,
                             viewWidth, viewHeight, this::isCancelled);
                 }
                 if (pxFunction != null) {
@@ -295,7 +310,7 @@ public class GraphPane extends Pane {
                         xs[i] = pxFunction.applyAsDouble(t);
                         ys[i] = pyFunction.applyAsDouble(t);
                     }
-                    return new Samples(xs, ys, sampleScale);
+                    return new Samples(xs, ys, sampleScaleX, sampleScaleY);
                 }
                 double[] xs = new double[count];
                 double[] ys = new double[count];
@@ -306,7 +321,7 @@ public class GraphPane extends Pane {
                     xs[i] = from + i * step;
                     ys[i] = f.applyAsDouble(xs[i]);
                 }
-                return new Samples(xs, ys, sampleScale);
+                return new Samples(xs, ys, sampleScaleX, sampleScaleY);
             }
         };
         // both handlers run on the JavaFX thread
@@ -337,7 +352,7 @@ public class GraphPane extends Pane {
     }
 
     private Samples sampleImplicit(ToDoubleBiFunction<Double, Double> f, double cx, double cy,
-                                   double sampleScale, double width, double height,
+                                   double sampleScaleX, double sampleScaleY, double width, double height,
                                    BooleanSupplier cancelled) {
         double cell = 5;
         int columns = Math.max(1, (int) Math.ceil(width / cell));
@@ -347,9 +362,9 @@ public class GraphPane extends Pane {
         double[][] values = new double[columns + 1][rows + 1];
         for (int i = 0; i <= columns; i++) {
             if (cancelled.getAsBoolean()) return null;
-            double x = cx + (i * dx - width / 2) / sampleScale;
+            double x = cx + (i * dx - width / 2) / sampleScaleX;
             for (int j = 0; j <= rows; j++) {
-                double y = cy - (j * dy - height / 2) / sampleScale;
+                double y = cy - (j * dy - height / 2) / sampleScaleY;
                 values[i][j] = f.applyAsDouble(x, y);
             }
         }
@@ -359,10 +374,10 @@ public class GraphPane extends Pane {
         double[] ey = new double[4];
         for (int i = 0; i < columns; i++) {
             for (int j = 0; j < rows; j++) {
-                double x0 = cx + (i * dx - width / 2) / sampleScale;
-                double x1 = cx + ((i + 1) * dx - width / 2) / sampleScale;
-                double y0 = cy - (j * dy - height / 2) / sampleScale;
-                double y1 = cy - ((j + 1) * dy - height / 2) / sampleScale;
+                double x0 = cx + (i * dx - width / 2) / sampleScaleX;
+                double x1 = cx + ((i + 1) * dx - width / 2) / sampleScaleX;
+                double y0 = cy - (j * dy - height / 2) / sampleScaleY;
+                double y1 = cy - ((j + 1) * dy - height / 2) / sampleScaleY;
                 double[] v = {values[i][j], values[i + 1][j], values[i + 1][j + 1], values[i][j + 1]};
                 double[] vx = {x0, x1, x1, x0};
                 double[] vy = {y0, y0, y1, y1};
@@ -385,7 +400,7 @@ public class GraphPane extends Pane {
         }
         double[] xs = outX.stream().mapToDouble(Double::doubleValue).toArray();
         double[] ys = outY.stream().mapToDouble(Double::doubleValue).toArray();
-        return new Samples(xs, ys, sampleScale);
+        return new Samples(xs, ys, sampleScaleX, sampleScaleY);
     }
 
     // ---------------------------------------------------------------- drawing (JavaFX thread only)
@@ -400,26 +415,28 @@ public class GraphPane extends Pane {
         gc.setFill(BACKGROUND);
         gc.fillRect(0, 0, w, h);
 
-        double step = niceStep(MIN_MAJOR_SPACING / scale);
-        drawGridLines(gc, w, h, step / 5, MINOR_GRID);
-        drawGridLines(gc, w, h, step, MAJOR_GRID);
+        double stepX = niceStep(MIN_MAJOR_SPACING / scaleX);
+        double stepY = niceStep(MIN_MAJOR_SPACING / scaleY);
+        drawGridLines(gc, w, h, stepX / 5, stepY / 5, MINOR_GRID);
+        drawGridLines(gc, w, h, stepX, stepY, MAJOR_GRID);
         drawAxes(gc, w, h);
-        drawLabels(gc, w, h, step);
+        drawLabels(gc, w, h, stepX, stepY);
         drawFunction(gc, w, h);
     }
 
-    private void drawGridLines(GraphicsContext gc, double w, double h, double spacing, Color color) {
+    private void drawGridLines(GraphicsContext gc, double w, double h,
+                               double spacingX, double spacingY, Color color) {
         gc.setStroke(color);
         gc.setLineWidth(1);
 
-        long firstX = (long) Math.ceil(toMathX(0) / spacing);
-        for (long i = firstX; i * spacing <= toMathX(w); i++) {
-            double px = Math.round(toScreenX(i * spacing)) + 0.5;
+        long firstX = (long) Math.ceil(toMathX(0) / spacingX);
+        for (long i = firstX; i * spacingX <= toMathX(w); i++) {
+            double px = Math.round(toScreenX(i * spacingX)) + 0.5;
             gc.strokeLine(px, 0, px, h);
         }
-        long firstY = (long) Math.ceil(toMathY(h) / spacing);
-        for (long i = firstY; i * spacing <= toMathY(0); i++) {
-            double py = Math.round(toScreenY(i * spacing)) + 0.5;
+        long firstY = (long) Math.ceil(toMathY(h) / spacingY);
+        for (long i = firstY; i * spacingY <= toMathY(0); i++) {
+            double py = Math.round(toScreenY(i * spacingY)) + 0.5;
             gc.strokeLine(0, py, w, py);
         }
     }
@@ -437,7 +454,7 @@ public class GraphPane extends Pane {
         }
     }
 
-    private void drawLabels(GraphicsContext gc, double w, double h, double step) {
+    private void drawLabels(GraphicsContext gc, double w, double h, double stepX, double stepY) {
         gc.setFill(LABEL);
         gc.setFont(Font.font(12));
 
@@ -446,18 +463,18 @@ public class GraphPane extends Pane {
         double labelX = clamp(toScreenX(0) - 6, 44, w - 4);
 
         gc.setTextAlign(TextAlignment.CENTER);
-        long firstX = (long) Math.ceil(toMathX(0) / step);
-        for (long i = firstX; i * step <= toMathX(w); i++) {
+        long firstX = (long) Math.ceil(toMathX(0) / stepX);
+        for (long i = firstX; i * stepX <= toMathX(w); i++) {
             if (i != 0) {
-                gc.fillText(ResultFormatter.format(i * step), toScreenX(i * step), labelY);
+                gc.fillText(ResultFormatter.format(i * stepX), toScreenX(i * stepX), labelY);
             }
         }
 
         gc.setTextAlign(TextAlignment.RIGHT);
-        long firstY = (long) Math.ceil(toMathY(h) / step);
-        for (long i = firstY; i * step <= toMathY(0); i++) {
+        long firstY = (long) Math.ceil(toMathY(h) / stepY);
+        for (long i = firstY; i * stepY <= toMathY(0); i++) {
             if (i != 0) {
-                gc.fillText(ResultFormatter.format(i * step), labelX, toScreenY(i * step) + 4);
+                gc.fillText(ResultFormatter.format(i * stepY), labelX, toScreenY(i * stepY) + 4);
             }
         }
         gc.fillText("0", labelX, labelY);
